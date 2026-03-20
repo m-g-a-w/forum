@@ -6,8 +6,8 @@
         <div class="logo">知识岛屿</div>
         <div class="nav-menus">
           <el-menu mode="horizontal" default-active="home" class="transparent-menu" active-text-color="#409eff">
-            <el-menu-item index="home" @click="scrollToTop"><i class="el-icon-discover"></i> 首页探索</el-menu-item>
-            <el-menu-item index="about" @click="scrollToMain"><i class="el-icon-magic-stick"></i> 动态脉络</el-menu-item>
+            <el-menu-item index="home" @click="scrollToTop"><i class="el-icon-s-home"></i> 首页</el-menu-item>
+            <el-menu-item index="about" @click="$router.push('/creator')"><i class="el-icon-edit-outline"></i> 创作</el-menu-item>
           </el-menu>
         </div>
         <div class="user-actions">
@@ -22,7 +22,6 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="settings"><i class="el-icon-user"></i> 个人中心</el-dropdown-item>
-              <el-dropdown-item command="creator"><i class="el-icon-edit-outline"></i> 创作者台</el-dropdown-item>
               <el-dropdown-item v-if="user?.role === 2" command="admin"><i class="el-icon-s-platform"></i> 系统运维</el-dropdown-item>
               <el-dropdown-item divided command="logout"><i class="el-icon-switch-button"></i> 退出登录</el-dropdown-item>
             </el-dropdown-menu>

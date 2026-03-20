@@ -1,50 +1,35 @@
 <template>
   <div class="creator-app">
-    <!-- 背景层：增加一点氛围感 -->
     <div class="glass-bg"></div>
     
-    <el-container class="main-layout">
-      <!-- 侧边栏：毛玻璃风格 -->
-      <el-aside width="260px" class="glass-aside">
-        <div class="aside-header">
-          <div class="brand-logo">
-            <i class="el-icon-brush"></i>
-            <span>CREATOR</span>
-          </div>
+    <!-- 顶部导航栏 - 与首页统一风格 -->
+    <el-header height="60px" class="global-header is-scrolled">
+      <div class="header-inner">
+        <div class="logo">知识岛屿</div>
+        <div class="nav-menus">
+          <el-menu mode="horizontal" default-active="creator" class="transparent-menu" active-text-color="#409eff">
+            <el-menu-item index="home" @click="$router.push('/')"><i class="el-icon-s-home"></i> 首页</el-menu-item>
+            <el-menu-item index="creator" @click="activeTab = 'columns'"><i class="el-icon-edit-outline"></i> 创作</el-menu-item>
+          </el-menu>
         </div>
-        
-        <div class="aside-menu-wrapper">
-          <div 
-            :class="['menu-item', { active: activeTab === 'columns' }]" 
-            @click="activeTab = 'columns'"
-          >
-            <i class="el-icon-collection"></i> 专栏智库
-          </div>
-          <div 
-            class="menu-item" 
-            @click="$router.push('/')"
-          >
-            <i class="el-icon-position"></i> 岛屿大厅
-          </div>
-          <div 
-            class="menu-item logout-item" 
-            @click="logout"
-          >
-            <i class="el-icon-turn-off"></i> 退出系统
-          </div>
+        <div class="user-actions">
+          <el-dropdown @command="handleCommand">
+            <span class="el-dropdown-link user-dropdown">
+               <el-avatar size="small" :src="user?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"></el-avatar>
+               <span class="username">{{ user?.username }}</span>
+               <i class="el-icon-arrow-down el-icon--right"></i>
+            </span>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item command="settings"><i class="el-icon-user"></i> 个人中心</el-dropdown-item>
+              <el-dropdown-item divided command="logout"><i class="el-icon-switch-button"></i> 退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         </div>
+      </div>
+    </el-header>
 
-        <div class="aside-footer">
-          <el-avatar :size="40" :src="user?.avatar" class="user-avatar"></el-avatar>
-          <div class="user-info-text">
-            <div class="user-name">{{ user?.username }}</div>
-            <div class="user-role">内容创作者</div>
-          </div>
-        </div>
-      </el-aside>
-
-      <el-container class="content-wrapper">
-        <el-main class="glass-main fade-in">
+    <div class="main-layout">
+      <el-main class="glass-main fade-in">
           <!-- 专栏管理页 -->
           <div v-show="activeTab === 'columns'" class="view-container">
             <div class="view-header">
@@ -133,8 +118,7 @@
              </div>
           </div>
         </el-main>
-      </el-container>
-    </el-container>
+    </div>
 
     <!-- 弹窗部分：统一美化 -->
     <el-dialog title="塑造新专栏" :visible.sync="showCreateColumn" width="500px" custom-class="glass-dialog">
@@ -243,6 +227,15 @@ export default {
   },
   methods: {
     ...mapMutations(['LOGOUT']),
+    handleCommand(cmd) {
+      if (cmd === 'logout') {
+        this.logout()
+      } else if (cmd === 'settings') {
+        this.$router.push('/settings')
+      } else if (cmd === 'creator') {
+        this.$router.push('/creator')
+      }
+    },
     logout() {
       this.LOGOUT()
       this.$router.push('/login')
@@ -330,6 +323,82 @@ export default {
 </script>
 
 <style scoped>
+/* 全局样式需要在非 scoped 区域定义，这里用相同样式覆盖 */
+.global-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: transparent;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.global-header.is-scrolled {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-bottom: none;
+}
+.global-header.is-scrolled .logo,
+.global-header.is-scrolled ::v-deep .el-menu-item {
+  color: #333 !important;
+}
+.header-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1.5px;
+  transition: all 0.3s;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.logo:hover {
+  text-shadow: 0 0 10px rgba(64, 158, 255, 0.8);
+}
+.transparent-menu.el-menu--horizontal {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+.transparent-menu ::v-deep .el-menu-item {
+  color: rgba(255,255,255,0.9);
+  font-size: 15px;
+  background-color: transparent !important;
+  border-bottom: 2px solid transparent !important;
+}
+.transparent-menu ::v-deep .el-menu-item:not(.is-disabled):hover,
+.transparent-menu ::v-deep .el-menu-item.is-active {
+  color: #409eff !important;
+  background-color: transparent !important;
+  border-bottom: 2px solid #409eff !important;
+}
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  font-weight: 500;
+}
+.global-header.is-scrolled .user-dropdown {
+  color: #333;
+}
+::v-deep .el-avatar > img {
+  object-fit: cover !important;
+  width: 100%;
+  height: 100%;
+}
+
 .creator-app {
   height: 100vh;
   position: relative;
@@ -348,90 +417,15 @@ export default {
   pointer-events: none;
 }
 .main-layout {
-  height: 100vh;
+  padding-top: 60px;
+  min-height: 100vh;
   z-index: 1;
   position: relative;
 }
-.glass-aside {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  padding: 30px 20px;
-}
-.aside-header {
-  margin-bottom: 50px;
-}
-.brand-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 22px;
-  font-weight: 900;
-  color: #303133;
-  letter-spacing: 2px;
-}
-.brand-logo i {
-  color: #409EFF;
-}
-.aside-menu-wrapper {
-  flex: 1;
-}
-.menu-item {
-  padding: 14px 20px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  color: #606266;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.menu-item i {
-  font-size: 18px;
-}
-.menu-item:hover {
-  background: rgba(64,158,255,0.05);
-  color: #409EFF;
-}
-.menu-item.active {
-  background: #409EFF;
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(64,158,255,0.3);
-}
-.logout-item {
-  margin-top: 40px;
-  color: #909399;
-}
-.logout-item:hover {
-  color: #f56c6c;
-  background: rgba(245,108,108,0.05);
-}
-.aside-footer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  background: rgba(0,0,0,0.03);
-  border-radius: 16px;
-}
-.user-info-text .user-name {
-  font-weight: 700;
-  font-size: 14px;
-}
-.user-info-text .user-role {
-  font-size: 11px;
-  color: #909399;
-}
 
-.content-wrapper {
-  background: transparent;
-}
 .glass-main {
   padding: 40px;
+  margin-top: 60px;
 }
 .view-container {
   max-width: 1200px;

@@ -1,4 +1,0 @@
-2026-03-19 21:02:17.568 [http-nio-8081-exec-4] INFO  org.apache.tomcat.util.http.parser.Cookie - A cookie header was received [Hm_lvt_adedae9bc250561cc17e96dc1fb46079=1764162409,1764162503,1764163329,1764222602] that contained an invalid cookie. That cookie will be ignored.
- Note: further occurrences of this error will be logged at DEBUG level.
-2026-03-19 21:09:38.855 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource - {dataSource-1} closing ...
-2026-03-19 21:09:38.861 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource - {dataSource-1} closed
