@@ -34,8 +34,12 @@
     <div class="hero-section">
        <div class="hero-bg" :style="{ transform: `translateY(${scrollY * 0.4}px)` }"></div>
        <div class="hero-content" :style="{ opacity: 1 - scrollY / 400, transform: `translateY(${scrollY * 0.2}px)` }">
-          <h1 class="hero-title">Knowledge Island</h1>
-          <p class="hero-subtitle">探索·分享·变现，让每一份代码和知识都有价值</p>
+          <div class="hitokoto-wrapper">
+            <p class="hero-subtitle">
+              <span class="hitokoto-text" :key="hitokotoKey">{{ displayedText }}</span>
+              <span class="typing-cursor" :class="{ blink: !isTyping }">|</span>
+            </p>
+          </div>
        </div>
        <!-- 下拉指示按钮 -->
        <div class="scroll-down-btn" @click="scrollToMain">
@@ -51,7 +55,7 @@
           <!-- 个人名片 -->
           <el-card class="box-card profile-card glow-hover" shadow="hover">
             <div class="profile-header">
-              <el-avatar :size="90" :src="user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80'" class="profile-avatar"></el-avatar>
+              <el-avatar :size="90" :src="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (user?.username || 'guest')" class="profile-avatar"></el-avatar>
               <h3 class="profile-name">{{ user ? user.username : '游客访客' }}</h3>
               <p class="profile-bio">{{ user ? (user.bio || '保持好奇心，持续建设属于自己的知识网络。') : '登录系统，解锁沉浸式阅读与创作之旅' }}</p>
             </div>
@@ -65,7 +69,7 @@
                 <div class="stat-label">已购文章</div>
               </div>
               <div class="stat-item">
-                <div class="stat-value">Lv.{{ user?.role === 1 ? '创作者' : (user?.role === 2 ? '超管' : '新') }}</div>
+                <div class="stat-value">Lv.{{ user?.role === 1 ? '2' : (user?.role === 2 ? '3' : '1') }}</div>
                 <div class="stat-label">头衔</div>
               </div>
             </div>
@@ -86,8 +90,8 @@
             <div slot="header" class="card-header">
                <span><i class="el-icon-search"></i> 站内搜索</span>
             </div>
-            <el-input placeholder="搜索你感兴趣的专栏..." v-model="searchKey" clearable @keyup.enter.native="handleSearch">
-              <el-button slot="append" icon="el-icon-right"></el-button>
+            <el-input placeholder="搜索你感兴趣的专栏..." v-model="searchInput" clearable @keyup.enter.native="handleSearch">
+              <el-button slot="append" icon="el-icon-search" @click="handleSearch"></el-button>
             </el-input>
           </el-card>
           
@@ -114,7 +118,6 @@
             <div class="feed-tabs-container">
               <div class="feed-tabs">
                 <div :class="['tab-item', { active: feedType === 'latest' }]" @click="changeFeed('latest')">发现岛屿</div>
-                <div :class="['tab-item', { active: feedType === 'free' }]" @click="changeFeed('free')">限免专区</div>
                 <div :class="['tab-item', { active: feedType === 'my_sub' }]" v-if="isLoggedIn" @click="changeFeed('my_sub')">我的订阅</div>
               </div>
             </div>
@@ -164,9 +167,15 @@ export default {
       isScrolled: false,
       scrollY: 0,
       searchKey: '',
+      searchInput: '',
       feedType: 'latest',
       columns: [],
-      scrollListener: null
+      scrollListener: null,
+      hitokoto: '',
+      hitokotoKey: 0,
+      displayedText: '',
+      isTyping: false,
+      typingTimer: null
     }
   },
   computed: {
@@ -181,16 +190,15 @@ export default {
       if (this.searchKey) {
         filtered = filtered.filter(col => col.title.includes(this.searchKey))
       }
-      if (this.feedType === 'free') {
-        filtered = filtered.filter(col => col.price === 0)
-      }
       return filtered
     }
   },
   created() {
     this.fetchColumns()
+    this.fetchHitokoto()
   },
   mounted() {
+    this.fetchHitokoto()
     this.scrollListener = () => {
       this.scrollY = window.scrollY
       this.isScrolled = window.scrollY > 50
@@ -199,9 +207,36 @@ export default {
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.scrollListener)
+    if (this.typingTimer) clearInterval(this.typingTimer)
   },
   methods: {
     ...mapMutations(['LOGOUT']),
+    async fetchHitokoto() {
+      try {
+        const response = await fetch('https://v1.hitokoto.cn/')
+        const data = await response.json()
+        this.hitokotoKey++
+        this.hitokoto = data.hitokoto
+        this.startTypingAnimation(data.hitokoto)
+      } catch (e) {
+        console.error('获取一言失败:', e)
+      }
+    },
+    startTypingAnimation(text) {
+      if (this.typingTimer) clearInterval(this.typingTimer)
+      this.displayedText = ''
+      this.isTyping = true
+      let index = 0
+      this.typingTimer = setInterval(() => {
+        if (index < text.length) {
+          this.displayedText += text[index]
+          index++
+        } else {
+          clearInterval(this.typingTimer)
+          this.isTyping = false
+        }
+      }, 80)
+    },
     handleCommand(command) {
       if (command === 'logout') {
         this.LOGOUT()
@@ -229,7 +264,7 @@ export default {
       if (mainEl) mainEl.scrollIntoView({ behavior: 'smooth' })
     },
     handleSearch() {
-      // 配合 computed 已经实现了前端轻量过滤，或者可以直接调用后端全量搜索引擎接口
+      this.searchKey = this.searchInput
       if (this.displayColumns.length > 0) {
         this.$message.success(`找到 ${this.displayColumns.length} 个相关专栏`)
       } else {
@@ -398,11 +433,34 @@ export default {
   animation: fadeUp 1s ease;
 }
 .hero-subtitle {
-  font-size: 20px;
-  opacity: 0.9;
-  font-weight: 300;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 2px;
   text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  animation: fadeUp 1s ease 0.2s both;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+.hitokoto-text {
+  animation: fadeIn 0.3s ease;
+}
+.typing-cursor {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  animation: blink 1s step-end infinite;
+}
+@keyframes fadeIn {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.hitokoto-wrapper {
+  min-height: 1.5em;
 }
 .scroll-down-btn {
   position: absolute;
@@ -466,9 +524,12 @@ export default {
 }
 
 /* Profile Card */
+.profile-header {
+  padding-top: 10px;
+}
 .profile-card {
   text-align: center;
-  padding: 10px 0;
+  padding: 20px 10px 10px;
   background: rgba(255, 255, 255, 0.7) !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   backdrop-filter: blur(20px) saturate(180%);
@@ -476,10 +537,10 @@ export default {
 .profile-avatar {
   border: 4px solid #fff;
   box-shadow: 0 0 15px rgba(64, 158, 255, 0.3);
-  margin-top: -45px;
+  margin-top: -50px;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   animation: borderBreath 3s infinite ease-in-out;
-  overflow: hidden;
+  overflow: visible;
 }
 @keyframes borderBreath {
   0%, 100% { box-shadow: 0 0 15px rgba(64, 158, 255, 0.3); border-color: #fff; }

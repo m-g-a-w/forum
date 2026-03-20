@@ -400,9 +400,8 @@ export default {
 }
 
 .creator-app {
-  height: 100vh;
+  min-height: 100vh;
   position: relative;
-  overflow: hidden;
   background-color: #f8f9fb;
   font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 }
