@@ -9,12 +9,6 @@
         <el-form-item label="密码" prop="password">
           <el-input type="password" v-model="regForm.password" placeholder="请输入密码"></el-input>
         </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-radio-group v-model="regForm.role">
-            <el-radio :label="0">读者</el-radio>
-            <el-radio :label="1">创作者</el-radio>
-          </el-radio-group>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleRegister" style="width: 100%;">注册</el-button>
         </el-form-item>
@@ -34,8 +28,7 @@ export default {
     return {
       regForm: {
         username: '',
-        password: '',
-        role: 0
+        password: ''
       },
       rules: {
         username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],

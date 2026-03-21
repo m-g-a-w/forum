@@ -1,6 +1,7 @@
 package com.knowledge.backend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -27,4 +28,8 @@ public class ColumnInfo implements Serializable {
     private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    
+    /** 非数据库字段：文章数量 */
+    @TableField(exist = false)
+    private Integer articleCount;
 }

@@ -7,7 +7,7 @@
       <el-main class="fade-in">
         <el-card class="top-card">
           <div class="info-layout">
-            <img :src="column.cover || 'https://via.placeholder.com/300x150?text=Column'" class="cover" />
+            <img :src="column.cover || 'https://picsum.photos/seed/' + column.id + '/600/300'" class="cover" />
             <div class="meta">
               <h2>{{ column.title }}</h2>
               <p class="desc">{{ column.description }}</p>

@@ -7,12 +7,12 @@
         <div class="nav-menus">
           <el-menu mode="horizontal" default-active="home" class="transparent-menu" active-text-color="#409eff">
             <el-menu-item index="home" @click="scrollToTop"><i class="el-icon-s-home"></i> 首页</el-menu-item>
-            <el-menu-item index="about" @click="$router.push('/creator')"><i class="el-icon-edit-outline"></i> 创作</el-menu-item>
+            <el-menu-item index="about" @click="handleCreatorClick"><i class="el-icon-edit-outline"></i> 创作</el-menu-item>
           </el-menu>
         </div>
         <div class="user-actions">
           <el-button type="primary" size="small" round v-if="!isLoggedIn" @click="$router.push('/login')" class="login-btn">
-            进入系统 / 注册
+            登录
           </el-button>
           <el-dropdown v-else @command="handleCommand">
             <span class="el-dropdown-link user-dropdown">
@@ -39,6 +39,7 @@
               <span class="hitokoto-text" :key="hitokotoKey">{{ displayedText }}</span>
               <span class="typing-cursor" :class="{ blink: !isTyping }">|</span>
             </p>
+            <p class="hitokoto-source" v-if="hitokotoSource">—— {{ hitokotoSource }}</p>
           </div>
        </div>
        <!-- 下拉指示按钮 -->
@@ -55,7 +56,7 @@
           <!-- 个人名片 -->
           <el-card class="box-card profile-card glow-hover" shadow="hover">
             <div class="profile-header">
-              <el-avatar :size="90" :src="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (user?.username || 'guest')" class="profile-avatar"></el-avatar>
+              <el-avatar :size="90" :src="getAvatarUrl()" class="profile-avatar"></el-avatar>
               <h3 class="profile-name">{{ user ? user.username : '游客访客' }}</h3>
               <p class="profile-bio">{{ user ? (user.bio || '保持好奇心，持续建设属于自己的知识网络。') : '登录系统，解锁沉浸式阅读与创作之旅' }}</p>
             </div>
@@ -65,7 +66,7 @@
                 <div class="stat-label">我的余额</div>
               </div>
               <div class="stat-item" style="border-left: 1px solid #ebeef5; border-right: 1px solid #ebeef5;">
-                <div class="stat-value">0</div>
+                <div class="stat-value">1</div>
                 <div class="stat-label">已购文章</div>
               </div>
               <div class="stat-item">
@@ -75,13 +76,8 @@
             </div>
             <div class="profile-actions">
                <el-button type="primary" round class="action-btn" @click="goSettings">
-                 {{ isLoggedIn ? '前往个人中心' : '即刻启航 / 登录' }}
+               {{ isLoggedIn ? '前往个人中心' : '登录' }}
                </el-button>
-               <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; font-size: 20px; color: #909399;">
-                 <i class="el-icon-eleme" style="cursor:pointer"></i>
-                 <i class="el-icon-message" style="cursor:pointer"></i>
-                 <i class="el-icon-link" style="cursor:pointer"></i>
-               </div>
             </div>
           </el-card>
 
@@ -91,14 +87,15 @@
                <span><i class="el-icon-search"></i> 站内搜索</span>
             </div>
             <el-input placeholder="搜索你感兴趣的专栏..." v-model="searchInput" clearable @keyup.enter.native="handleSearch">
-              <el-button slot="append" icon="el-icon-search" @click="handleSearch"></el-button>
+              <i slot="prefix" class="el-input__icon el-icon-search"></i>
+              <i slot="suffix" class="el-input__icon el-icon-search" style="cursor:pointer" @click="handleSearch"></i>
             </el-input>
           </el-card>
           
           <!-- 排行榜板块 -->
           <el-card class="box-card recommend-card glow-hover" shadow="hover" style="margin-top: 20px;">
             <div slot="header" class="card-header">
-              <span><i class="el-icon-medal" style="color: #f1c40f;"></i> 知识热力排行榜</span>
+              <span><i class="el-icon-medal" style="color: #f1c40f;"></i> 热度排行榜</span>
             </div>
             <div class="rank-list">
                <div class="rank-item" v-for="(item, index) in recommendList" :key="item.id" @click="goDetail(item.id)">
@@ -124,7 +121,7 @@
             <div class="column-feed-grid">
                <div class="column-feed-card fade-in" v-for="(item, index) in displayColumns" :key="item.id" @click="goDetail(item.id)" :style="{ animationDelay: index * 0.1 + 's' }">
                  <div class="card-cover-box">
-                    <img :src="item.cover || 'https://via.placeholder.com/600x400?text=Cover'" class="card-cover" />
+                    <img :src="item.cover || 'https://picsum.photos/seed/' + item.id + '/600/400'" class="card-cover" />
                     <div class="card-tag" v-if="item.price === 0">FREE</div>
                     <div class="card-price-overlay">
                        {{ item.price > 0 ? '¥' + item.price : '免费畅读' }}
@@ -172,10 +169,19 @@ export default {
       columns: [],
       scrollListener: null,
       hitokoto: '',
+      hitokotoSource: '',
       hitokotoKey: 0,
       displayedText: '',
       isTyping: false,
-      typingTimer: null
+      typingTimer: null,
+      // 备用一言（文学、影视、哲学）
+      fallbackHitokotos: [
+        { text: '满地黄花堆积，憔悴损，如今有谁堪摘', source: '李清照《声声慢》' },
+        { text: '所有的大人都曾经是小孩，虽然，只有少数的人记得', source: '圣埃克苏佩里《小王子》' },
+        { text: '我唯一知道的就是我一无所知', source: '苏格拉底' },
+        { text: '人生若只如初见，何事秋风悲画扇', source: '纳兰性德《木兰花》' },
+        { text: '当你凝视深渊时，深渊也在凝视你', source: '尼采《善恶的彼岸》' }
+      ]
     }
   },
   computed: {
@@ -211,15 +217,51 @@ export default {
   },
   methods: {
     ...mapMutations(['LOGOUT']),
+    handleCreatorClick() {
+      if (this.isLoggedIn) {
+        this.$router.push('/creator')
+      } else {
+        this.$confirm('请先登录后再进行创作', '提示', {
+          confirmButtonText: '去登录',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.$router.push('/login')
+        }).catch(() => {})
+      }
+    },
+    getAvatarUrl() {
+      if (this.user?.avatar) return this.user.avatar
+      if (!this.user) {
+        return 'https://api.dicebear.com/7.x/identicon/svg?seed=guest&backgroundColor=e0e7ff'
+      }
+      const seed = this.user.username
+      const avatars = [
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`,
+        `https://api.multiavatar.com/${seed}.svg`,
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(seed)}&background=random&size=90`
+      ]
+      return avatars[0]
+    },
     async fetchHitokoto() {
       try {
-        const response = await fetch('https://v1.hitokoto.cn/')
+        // 只获取诗词
+        const response = await fetch('https://v1.hitokoto.cn/?c=g')
         const data = await response.json()
         this.hitokotoKey++
         this.hitokoto = data.hitokoto
+        this.hitokotoSource = data.from_book ? `${data.from}《${data.from_book}》` : (data.from ? `${data.from}` : '')
         this.startTypingAnimation(data.hitokoto)
       } catch (e) {
         console.error('获取一言失败:', e)
+        // 使用备用一言列表，随机选一条
+        const fallback = this.fallbackHitokotos[
+          Math.floor(Math.random() * this.fallbackHitokotos.length)
+        ]
+        this.hitokotoKey++
+        this.hitokoto = fallback.text
+        this.hitokotoSource = fallback.source
+        this.startTypingAnimation(fallback.text)
       }
     },
     startTypingAnimation(text) {
@@ -461,6 +503,12 @@ export default {
 }
 .hitokoto-wrapper {
   min-height: 1.5em;
+}
+.hitokoto-source {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 10px;
+  font-style: italic;
 }
 .scroll-down-btn {
   position: absolute;

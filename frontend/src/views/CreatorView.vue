@@ -34,7 +34,7 @@
           <div v-show="activeTab === 'columns'" class="view-container">
             <div class="view-header">
               <h2 class="view-title">我的知识专栏</h2>
-              <el-button type="primary" icon="el-icon-plus" round @click="showCreateColumn = true" class="premium-btn">构造新专栏</el-button>
+              <el-button type="primary" icon="el-icon-plus" round @click="showCreateColumn = true" class="premium-btn">创建新专栏</el-button>
             </div>
             
             <div class="column-grid">
@@ -42,18 +42,19 @@
                   <div class="card-cover-wrapper">
                     <img :src="col.cover || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=500&q=80'" class="card-cover" />
                     <div class="card-status-tag" :class="{ 'is-published': col.status === 1 }">
-                      {{ col.status === 1 ? '已步入大厅' : '草稿构思' }}
+                      {{ col.status === 1 ? '已上架' : '草稿' }}
                     </div>
                   </div>
                   <div class="card-body">
                     <h3 class="card-title">{{ col.title }}</h3>
                     <div class="card-meta">
                       <span class="price-tag">¥{{ col.price }}</span>
-                      <span class="count-tag"><i class="el-icon-document"></i> 0 篇内容</span>
+                      <span class="count-tag"><i class="el-icon-document"></i> {{ col.articleCount || 0 }} 篇内容</span>
                     </div>
                     <div class="card-actions">
-                      <el-button type="primary" size="small" plain round @click="manageArticles(col)">深度管理</el-button>
-                      <el-button type="danger" size="small" plain round icon="el-icon-bottom" v-if="col.status === 1" @click="downColumn(col.id)"></el-button>
+                      <el-button type="primary" size="small" plain round @click="manageArticles(col)">管理</el-button>
+                      <el-button type="danger" size="small" plain round v-if="col.status === 1" @click="offlineColumn(col.id)">下架</el-button>
+                      <el-button type="success" size="small" plain round v-else @click="publishColumn(col.id)">上架</el-button>
                     </div>
                   </div>
                </div>
@@ -92,7 +93,7 @@
                            <span class="order-text">排序: {{ article.sortOrder }}</span>
                         </div>
                         <div class="article-btn-group">
-                          <el-button type="text" size="small" icon="el-icon-edit" @click="editArticle(article)">修正</el-button>
+                          <el-button type="text" size="small" icon="el-icon-edit" @click="editArticle(article)">修改</el-button>
                           <el-button type="text" size="small" icon="el-icon-delete" style="color: #f56c6c"></el-button>
                         </div>
                       </div>
@@ -108,7 +109,7 @@
                       <div v-for="article in getArticlesByChapter(null)" :key="article.id" class="article-row">
                         <div class="article-title">{{ article.title }}</div>
                         <div class="article-btn-group">
-                          <el-button type="text" size="small" icon="el-icon-edit" @click="editArticle(article)">修正</el-button>
+                          <el-button type="text" size="small" icon="el-icon-edit" @click="editArticle(article)">修改</el-button>
                         </div>
                       </div>
                    </div>
@@ -121,9 +122,9 @@
     </div>
 
     <!-- 弹窗部分：统一美化 -->
-    <el-dialog title="塑造新专栏" :visible.sync="showCreateColumn" width="500px" custom-class="glass-dialog">
+    <el-dialog title="创建新专栏" :visible.sync="showCreateColumn" width="500px" custom-class="glass-dialog">
       <el-form :model="columnForm" label-position="top">
-        <el-form-item label="专栏冠名">
+        <el-form-item label="专栏名称">
           <el-input v-model="columnForm.title" placeholder="请赋予它一个响亮的名字"></el-input>
         </el-form-item>
         <el-form-item label="内容精髓">
@@ -137,8 +138,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer">
-        <el-button @click="showCreateColumn = false" round>暂缓</el-button>
-        <el-button type="primary" @click="createColumn" round class="premium-btn">立即雕刻</el-button>
+        <el-button @click="showCreateColumn = false" round>取消</el-button>
+        <el-button type="primary" @click="createColumn" round class="premium-btn">创建</el-button>
       </div>
     </el-dialog>
 
@@ -181,7 +182,7 @@
             <el-switch v-model="articleForm.isFree" :active-value="1" :inactive-value="0"></el-switch>
           </div>
           <el-button type="primary" round class="premium-btn publish-btn" @click="publishArticle">
-            {{ articleForm.id ? '更新智慧' : '发布岛屿' }}
+            {{ articleForm.id ? '更新文章' : '发布岛屿' }}
           </el-button>
         </div>
       </div>
@@ -254,11 +255,25 @@ export default {
     },
     downColumn(id) {
       this.$confirm('确认将其从大厅撤回吗？已订阅用户仍可查看。', '撤回确认', { type: 'warning' }).then(() => {
-        request.post(`/admin/column/status?id=${id}&status=0`).then(() => {
+        request.post(`/column/${id}/status?status=0`).then(() => {
           this.$message.success('已撤回至草稿状态')
           this.fetchColumns()
         })
       }).catch(() => {})
+    },
+    offlineColumn(id) {
+      this.$confirm('确认下架该专栏吗？下架后用户将无法访问。', '下架确认', { type: 'warning' }).then(() => {
+        request.post(`/column/${id}/status?status=0`).then(() => {
+          this.$message.success('专栏已下架')
+          this.fetchColumns()
+        })
+      }).catch(() => {})
+    },
+    publishColumn(id) {
+      request.post(`/column/${id}/status?status=1`).then(() => {
+        this.$message.success('专栏已上架')
+        this.fetchColumns()
+      })
     },
     manageArticles(col) {
       this.currentColumn = col
@@ -313,7 +328,7 @@ export default {
       }
       this.articleForm.columnId = this.currentColumn.id
       request.post('/article/publish', this.articleForm).then(() => {
-         this.$message.success(this.articleForm.id ? '修正已同步' : '新思想已发布')
+         this.$message.success(this.articleForm.id ? '修改已同步' : '已发布')
          this.showPublishArticle = false
          this.fetchArticles(this.currentColumn.id)
       })

@@ -7,7 +7,7 @@ UPDATE `column_info` SET `cover` = 'https://images.unsplash.com/photo-1561070791
 
 -- 2. 增加一位新的大V创作者
 INSERT IGNORE INTO `user` (`id`, `username`, `password`, `email`, `role`, `balance`, `status`) VALUES 
-(4, 'creator_pro', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'pro@example.com', 1, 0.00, 1);
+(4, 'creator_pro', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'pro@example.com', 1, 100.00, 1);
 
 -- 3. 插入全新带图专栏
 INSERT IGNORE INTO `column_info` (`id`, `creator_id`, `title`, `description`, `cover`, `price`, `status`) VALUES 

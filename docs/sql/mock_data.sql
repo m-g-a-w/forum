@@ -4,8 +4,8 @@ USE `knowledge_platform`;
 
 -- 插入创作者与普通用户
 INSERT IGNORE INTO `user` (`id`, `username`, `password`, `email`, `role`, `balance`, `status`) VALUES 
-(2, 'creator1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'creator1@example.com', 1, 0.00, 1),
-(3, 'reader1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'reader1@example.com', 0, 500.00, 1);
+(2, 'creator1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'creator1@example.com', 1, 100.00, 1),
+(3, 'reader1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'reader1@example.com', 0, 100.00, 1);
 
 -- 插入专栏
 INSERT IGNORE INTO `column_info` (`id`, `creator_id`, `title`, `description`, `cover`, `price`, `status`) VALUES 
@@ -23,5 +23,9 @@ INSERT IGNORE INTO `article` (`id`, `column_id`, `title`, `content`, `is_free`, 
 (6, 3, '第二章：如何设计有层次感的卡片阴影', '<p>阴影不在深，而在乎多层晕染。本课免费开放给大家作为日常实战指南。</p>', 1, 2, 1);
 
 -- 插入评论测试
-INSERT IGNORE INTO `comment` (`id`, `article_id`, `user_id`, `content`) VALUES 
+INSERT IGNORE INTO `comment` (`id`, `article_id`, `user_id`, `content`) VALUES
 (1, 1, 3, '太棒了，这正是我要找的文章！通俗易懂。');
+
+-- 插入默认订阅记录（用户默认订阅专栏1）
+INSERT IGNORE INTO `subscription` (`id`, `user_id`, `column_id`, `status`, `create_time`) VALUES
+(1, 3, 1, 1, NOW());

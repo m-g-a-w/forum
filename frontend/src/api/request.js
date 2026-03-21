@@ -7,7 +7,7 @@ const service = axios.create({
   timeout: 5000
 })
 
-// 请求拦截器
+// 请求拦截器：添加 token
 service.interceptors.request.use(
   config => {
     if (store.state.token) {
@@ -24,23 +24,38 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
-    // 假设后端返回格式 { code: 200, message: '成功', data: ... }
     if (res.code !== 200) {
-      MessageBox.alert(res.message || 'Error', '操作失败', {
-        confirmButtonText: '确定',
-        type: 'error'
-      }).catch(() => {})
-      
       if (res.code === 401) {
         store.commit('LOGOUT')
+        MessageBox.confirm('您还未登录，是否前往登录页面？', '提示', {
+          confirmButtonText: '去登录',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          window.location.href = '/login'
+        }).catch(() => {})
+        return null
       }
-      // 抛出普通字符串替代 Error 对象，避免在控制台打印红色长堆栈
-      return Promise.reject(res.message || 'Error')
-    } else {
-      return res.data
+      MessageBox.alert(res.message || '操作失败', '提示', {
+        confirmButtonText: '确定',
+        type: 'warning'
+      }).catch(() => {})
+      return null
     }
+    return res.data
   },
   error => {
+    if (error.response && error.response.status === 401) {
+      store.commit('LOGOUT')
+      MessageBox.confirm('您还未登录，是否前往登录页面？', '提示', {
+        confirmButtonText: '去登录',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        window.location.href = '/login'
+      }).catch(() => {})
+      return Promise.resolve(null)
+    }
     let errorMsg = error.message
     if (error.response && error.response.data && error.response.data.message) {
       errorMsg = error.response.data.message
@@ -49,7 +64,7 @@ service.interceptors.response.use(
       confirmButtonText: '我知道了',
       type: 'error'
     }).catch(() => {})
-    return Promise.reject(errorMsg)
+    return Promise.resolve(null)
   }
 )
 

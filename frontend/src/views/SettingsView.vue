@@ -46,11 +46,10 @@
                <el-form label-width="100px" style="max-width: 500px; margin-top: 30px;">
                  <el-form-item label="头像URL">
                    <el-input v-model="form.avatar" placeholder="填入网络图片链接"></el-input>
-                   <!-- 实际开发中可以通过 el-upload 组件替换为上传文件逻辑 -->
                  </el-form-item>
                  <el-form-item label="用户名">
                    <el-input v-model="form.username" disabled></el-input>
-                   <p class="help-text">用户名注册后暂时不可修改</p>
+                   <p class="help-text" style="margin-top: 8px;">用户名注册后暂时不可修改</p>
                  </el-form-item>
                  <el-form-item label="个人简介">
                    <el-input type="textarea" :rows="4" v-model="form.bio" placeholder="一句话介绍自己，将在您的个人主页展示"></el-input>
@@ -82,7 +81,7 @@
                <el-divider></el-divider>
                <div v-if="subscriptions.length > 0" class="sub-grid">
                  <div v-for="col in subscriptions" :key="col.id" class="sub-item" @click="$router.push('/column/' + col.id)">
-                   <img :src="col.cover || 'https://via.placeholder.com/200x120?text=Column'" class="sub-cover" />
+                   <img :src="col.cover || 'https://picsum.photos/seed/' + col.id + '/400/240'" class="sub-cover" />
                    <div class="sub-info">
                      <p class="sub-title">{{ col.title }}</p>
                      <el-tag size="mini" :type="col.price > 0 ? 'warning' : 'success'">

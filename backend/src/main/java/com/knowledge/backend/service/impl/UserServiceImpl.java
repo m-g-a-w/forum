@@ -40,7 +40,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new RuntimeException("用户名已存在");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setBalance(BigDecimal.ZERO);
+        user.setBalance(BigDecimal.valueOf(100));
         user.setStatus(1);
         if (user.getRole() == null) {
             user.setRole(1); // 默认创作中心角色，全民创作
