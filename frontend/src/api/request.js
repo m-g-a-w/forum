@@ -34,13 +34,15 @@ service.interceptors.response.use(
         }).then(() => {
           window.location.href = '/login'
         }).catch(() => {})
-        return null
       }
-      MessageBox.alert(res.message || '操作失败', '提示', {
-        confirmButtonText: '确定',
-        type: 'warning'
-      }).catch(() => {})
-      return null
+      // 400 业务错误不弹出提示，让调用者自行处理
+      if (res.code !== 400) {
+        MessageBox.alert(res.message || '操作失败', '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        }).catch(() => {})
+      }
+      return Promise.reject(res)
     }
     return res.data
   },

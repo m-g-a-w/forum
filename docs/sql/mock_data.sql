@@ -4,8 +4,8 @@ USE `knowledge_platform`;
 
 -- 插入创作者与普通用户
 INSERT IGNORE INTO `user` (`id`, `username`, `password`, `email`, `role`, `balance`, `status`) VALUES 
-(2, 'creator1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'creator1@example.com', 1, 100.00, 1),
-(3, 'reader1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'reader1@example.com', 0, 100.00, 1);
+(2, 'creator1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'creator1@example.com', 1, 0.00, 1),
+(3, 'reader1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'reader1@example.com', 0, 0.00, 1);
 
 -- 插入专栏
 INSERT IGNORE INTO `column_info` (`id`, `creator_id`, `title`, `description`, `cover`, `price`, `status`) VALUES 

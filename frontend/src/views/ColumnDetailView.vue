@@ -1,8 +1,12 @@
 <template>
   <div class="column-detail">
     <el-container v-if="column">
-      <el-header height="60px">
-        <div class="logo" @click="$router.push('/')" style="cursor: pointer;">&lt; 返回首页</div>
+      <el-header height="60px" class="glass-header">
+        <div class="header-inner">
+          <div class="nav-back" @click="$router.push('/')">
+            <i class="el-icon-back"></i> 返回首页
+          </div>
+        </div>
       </el-header>
       <el-main class="fade-in">
         <el-card class="top-card">
@@ -71,6 +75,11 @@ export default {
         this.articles = res
       })
     },
+    fetchUserBalance() {
+      request.get('/user/info').then(user => {
+        this.$store.commit('SET_USER', user)
+      }).catch(() => {})
+    },
     checkSubscription() {
       if (!this.$store.getters.isLoggedIn || !this.column) return
       request.get('/subscription/check?columnId=' + this.column.id).then(res => {
@@ -82,6 +91,11 @@ export default {
         this.$message.warning('请先登录系统')
         return this.$router.push('/login')
       }
+      // 不能订阅自己的专栏
+      if (this.column.creatorId === this.$store.state.user?.id) {
+        this.$message.info('这是您的专栏，无需订阅')
+        return
+      }
       if (this.isSubscribed) {
         this.$message.info('您已订阅该专栏')
         return
@@ -91,6 +105,7 @@ export default {
         request.post('/order/create?columnId=' + this.column.id).then(() => {
           this.$message.success('免费专栏订阅成功！')
           this.isSubscribed = true
+          this.fetchUserBalance()
         }).catch(() => {})
         return
       }
@@ -104,12 +119,18 @@ export default {
           if (!order) {
             this.$message.success('订阅成功')
             this.isSubscribed = true
+            this.fetchUserBalance()
           } else {
             request.post('/order/pay?orderNo=' + order.orderNo).then(() => {
               this.$message.success('支付成功，已解锁该专栏 🎉')
               this.isSubscribed = true
-            }).catch(() => {})
+              this.fetchUserBalance()
+            }).catch(err => {
+              this.$message.error(err.message || '余额不足，订阅失败')
+            })
           }
+        }).catch(err => {
+          this.$message.error(err.message || '订阅失败')
         })
       }).catch(() => {})
     },
@@ -125,16 +146,33 @@ export default {
 </script>
 
 <style scoped>
-.el-header {
+.glass-header {
   line-height: 60px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.logo {
-  font-size: 16px;
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nav-back {
+  font-size: 15px;
   color: #606266;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.3s;
 }
-.logo:hover {
+.nav-back:hover {
   color: #409EFF;
 }
 .top-card {

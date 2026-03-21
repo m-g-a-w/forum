@@ -62,16 +62,16 @@
             </div>
             <div class="profile-stats" v-if="isLoggedIn">
               <div class="stat-item">
-                <div class="stat-value">{{ user?.balance || '0.00' }}</div>
+                <div class="stat-value">{{ (user?.balance || 0).toFixed(2) }}</div>
                 <div class="stat-label">我的余额</div>
               </div>
               <div class="stat-item" style="border-left: 1px solid #ebeef5; border-right: 1px solid #ebeef5;">
-                <div class="stat-value">1</div>
+                <div class="stat-value">{{ purchasedCount }}</div>
                 <div class="stat-label">已购文章</div>
               </div>
               <div class="stat-item">
-                <div class="stat-value">Lv.{{ user?.role === 1 ? '2' : (user?.role === 2 ? '3' : '1') }}</div>
-                <div class="stat-label">头衔</div>
+                <div class="stat-value">Lv.{{ getLevel() }}</div>
+                <div class="stat-label">等级</div>
               </div>
             </div>
             <div class="profile-actions">
@@ -174,6 +174,7 @@ export default {
       displayedText: '',
       isTyping: false,
       typingTimer: null,
+      purchasedCount: 0,
       // 备用一言（文学、影视、哲学）
       fallbackHitokotos: [
         { text: '满地黄花堆积，憔悴损，如今有谁堪摘', source: '李清照《声声慢》' },
@@ -202,6 +203,9 @@ export default {
   created() {
     this.fetchColumns()
     this.fetchHitokoto()
+    if (this.$store.getters.isLoggedIn) {
+      this.fetchMySubscriptions()
+    }
   },
   mounted() {
     this.fetchHitokoto()
@@ -323,6 +327,18 @@ export default {
           this.columns = res
         })
       }
+    },
+    fetchMySubscriptions() {
+      request.get('/subscription/my').then(res => {
+        this.purchasedCount = res ? res.length : 0
+      }).catch(() => {
+        this.purchasedCount = 0
+      })
+    },
+    getLevel() {
+      if (this.purchasedCount >= 6) return 3
+      if (this.purchasedCount >= 3) return 2
+      return 1
     },
     changeFeed(type) {
       this.feedType = type

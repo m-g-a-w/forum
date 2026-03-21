@@ -47,8 +47,11 @@ export default {
             this.SET_USER(res.user)
             this.$message.success('登录成功')
             this.$router.push('/')
-          }).catch(() => {
-            // 忽略组件基级别的报错（已由 request.js 全局弹窗处理）
+          }).catch((err) => {
+            // 登录失败时显示错误提示
+            if (err && err.message) {
+              this.$message.error(err.message)
+            }
           })
         }
       })

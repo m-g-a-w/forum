@@ -6,10 +6,6 @@
           <div class="nav-back" @click="goBack">
             <i class="el-icon-back"></i> 返回专栏
           </div>
-          <div class="header-actions">
-            <el-button size="small" icon="el-icon-star-off" circle></el-button>
-            <el-button size="small" icon="el-icon-share" circle></el-button>
-          </div>
         </div>
       </el-header>
       
@@ -22,7 +18,7 @@
               <el-avatar size="medium" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"></el-avatar>
               <div class="author-details">
                 <span class="author-name">知识专栏作者</span>
-                <span class="publish-time">{{ article.createTime }} · 约只需阅览 5 分钟</span>
+                <span class="publish-time">{{ article.createTime }} · 约阅读 5 分钟</span>
               </div>
             </div>
           </div>
@@ -98,7 +94,8 @@ export default {
       showPaywall: false,
       comments: [],
       newComment: '',
-      submitting: false
+      submitting: false,
+      isPaywall: false
     }
   },
   computed: {
@@ -115,18 +112,13 @@ export default {
       const id = this.$route.params.id
       request.get('/article/' + id).then(res => {
         this.article = res
-        request.get('/column/' + this.article.columnId).then(col => {
-           if (col.price > 0 && !this.article.isFree) {
-              request.get(`/order/check?columnId=${this.article.columnId}`).catch(() => {})
-           }
-        })
-      }).catch(err => {
-        if(err === '未解锁' || err.includes('购买付款') || err.includes('付费')) {
-           this.showPaywall = true
-        } else {
-           // 当后端因为未解锁而直接把文章内容掐掉或抛错时的托底机制
-           this.showPaywall = true
+        this.isPaywall = res.paywall === true
+        if (this.isPaywall) {
+          this.showPaywall = true
         }
+      }).catch(err => {
+        // 文章不存在或获取失败，显示付费墙
+        this.showPaywall = true
       })
       this.fetchComments()
     },
@@ -149,7 +141,7 @@ export default {
       }
       this.submitting = true
       const id = this.$route.params.id
-      request.post('/comment/post', {
+      request.post('/comment/publish', {
         articleId: id,
         content: this.newComment
       }).then(() => {

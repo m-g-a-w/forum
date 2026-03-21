@@ -70,4 +70,19 @@ public class UserController {
         user.setPassword(null);
         return Result.success(user);
     }
+
+    @PostMapping("/recharge")
+    public Result<User> recharge(@RequestAttribute("userId") Long userId, @RequestParam("amount") java.math.BigDecimal amount) {
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        if (amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            return Result.error(400, "充值金额必须大于0");
+        }
+        user.setBalance(user.getBalance().add(amount));
+        userService.updateById(user);
+        user.setPassword(null);
+        return Result.success(user);
+    }
 }

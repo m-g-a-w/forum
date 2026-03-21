@@ -177,9 +177,10 @@ export default {
       }).catch(() => {})
     },
     handleRecharge() {
-      this.$message.success('已模拟向账户打入 100 元 (只更新内存数据供测试)')
-      const updatedUser = { ...this.user, balance: (parseFloat(this.user.balance || 0) + 100).toFixed(2) }
-      this.$store.commit('SET_USER', updatedUser)
+      request.post('/user/recharge?amount=100').then(res => {
+        this.$message.success('充值成功！已向账户打入 100 元')
+        this.$store.commit('SET_USER', res)
+      }).catch(() => {})
     },
     fetchSubscriptions() {
       request.get('/subscription/my').then(res => {

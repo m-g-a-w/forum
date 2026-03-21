@@ -5,6 +5,7 @@ import com.knowledge.backend.entity.Article;
 import com.knowledge.backend.entity.ColumnInfo;
 import com.knowledge.backend.service.ArticleService;
 import com.knowledge.backend.service.ColumnInfoService;
+import com.knowledge.backend.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,9 @@ public class ArticleController {
 
     @Autowired
     private ColumnInfoService columnInfoService;
+
+    @Autowired
+    private SubscriptionService subscriptionService;
 
     @PostMapping("/publish")
     public Result<Article> publish(@RequestBody Article article, @RequestAttribute("userId") Long userId) {
@@ -52,9 +56,18 @@ public class ArticleController {
         if (article == null || article.getStatus() == 0) {
             return Result.error(404, "文章不存在或已下架");
         }
-        // 此处如果文章收费，还需要检查用户是否购买了专栏。
-        // 为了渐进式开发，这里暂留判断钩子，如果没买，且不是免费文章，不仅能看标题，正文用提示替换
-        // 稍后在订单模块完善后补充鉴权逻辑
+        // 检查是否需要订阅
+        ColumnInfo column = columnInfoService.getById(article.getColumnId());
+        if (column != null && column.getPrice() != null && column.getPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            // 专栏是付费的，检查用户是否已订阅
+            if (userId == null || !subscriptionService.checkSubscribe(userId, article.getColumnId())) {
+                // 未订阅且不是免费文章，隐藏正文
+                if (article.getIsFree() == null || article.getIsFree() != 1) {
+                    article.setContent("【付费内容】请先订阅该专栏以阅读完整内容");
+                    article.setPaywall(true);
+                }
+            }
+        }
         return Result.success(article);
     }
 }
