@@ -4,7 +4,7 @@
        <div class="header-inner">
          <div class="logo" @click="$router.push('/')" style="cursor: pointer;"><i class="el-icon-back"></i> 返回首页</div>
          <div class="user-info">
-             <el-avatar size="small" :src="user?.avatar"></el-avatar>
+             <el-avatar size="small" :src="user?.avatar || (user ? 'https://api.dicebear.com/7.x/avataaars/png?seed=' + user.username : 'https://api.dicebear.com/7.x/avataaars/png?seed=default')"></el-avatar>
              <span style="margin-left: 10px; font-weight: bold">{{ user?.username }}</span>
          </div>
        </div>
@@ -148,7 +148,7 @@ export default {
   },
   mounted() {
     if (this.user) {
-      this.form.avatar = this.user.avatar || ''
+      this.form.avatar = this.user.avatar || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + this.user.username
       this.form.username = this.user.username
       this.form.bio = this.user.bio || ''
       this.form.email = this.user.email || ''

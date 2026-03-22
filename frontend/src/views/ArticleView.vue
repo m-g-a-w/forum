@@ -15,7 +15,7 @@
           
           <div class="meta-section">
             <div class="author-info">
-              <el-avatar size="medium" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"></el-avatar>
+              <el-avatar size="medium" src="https://api.dicebear.com/7.x/avataaars/png?seed=default"></el-avatar>
               <div class="author-details">
                 <span class="author-name">知识专栏作者</span>
                 <span class="publish-time">{{ article.createTime }} · 约阅读 5 分钟</span>
@@ -48,7 +48,7 @@
             <!-- 评论列表 -->
             <div class="comment-list">
               <div v-for="comment in comments" :key="comment.id" class="comment-item">
-                <el-avatar :size="36" :src="comment.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"></el-avatar>
+                <el-avatar :size="36" :src="comment.avatar || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + (comment.username || 'default')"></el-avatar>
                 <div class="comment-body">
                   <div class="comment-meta">
                     <span class="comment-author">{{ comment.nickname || comment.username || '匿名用户' }}</span>

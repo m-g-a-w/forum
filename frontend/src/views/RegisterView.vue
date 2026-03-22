@@ -43,7 +43,9 @@ export default {
           request.post('/user/register', this.regForm).then(() => {
             this.$message.success('注册成功，请登录')
             this.$router.push('/login')
-          }).catch(() => {})
+          }).catch(err => {
+            this.$message.error(err.message || '注册失败，账号可能已被注册')
+          })
         }
       })
     }

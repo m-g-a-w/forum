@@ -16,7 +16,7 @@
           </el-button>
           <el-dropdown v-else @command="handleCommand">
             <span class="el-dropdown-link user-dropdown">
-               <el-avatar size="small" :src="user?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"></el-avatar>
+               <el-avatar size="small" :src="user?.avatar || (user ? 'https://api.dicebear.com/7.x/avataaars/png?seed=' + user.username : 'https://api.dicebear.com/7.x/avataaars/png?seed=default')"></el-avatar>
                <span class="username">{{ user?.username }}</span>
                <i class="el-icon-arrow-down el-icon--right"></i>
             </span>
@@ -56,7 +56,7 @@
           <!-- 个人名片 -->
           <el-card class="box-card profile-card glow-hover" shadow="hover">
             <div class="profile-header">
-              <el-avatar :size="90" :src="getAvatarUrl()" class="profile-avatar"></el-avatar>
+              <el-avatar :size="90" :src="user?.avatar || (user ? 'https://api.dicebear.com/7.x/avataaars/png?seed=' + user.username : 'https://api.dicebear.com/7.x/avataaars/png?seed=default')" class="profile-avatar"></el-avatar>
               <h3 class="profile-name">{{ user ? user.username : '游客访客' }}</h3>
               <p class="profile-bio">{{ user ? (user.bio || '保持好奇心，持续建设属于自己的知识网络。') : '登录系统，解锁沉浸式阅读与创作之旅' }}</p>
             </div>
@@ -237,11 +237,11 @@ export default {
     getAvatarUrl() {
       if (this.user?.avatar) return this.user.avatar
       if (!this.user) {
-        return 'https://api.dicebear.com/7.x/identicon/svg?seed=guest&backgroundColor=e0e7ff'
+        return 'https://api.dicebear.com/7.x/identicon/png?seed=guest&backgroundColor=e0e7ff'
       }
       const seed = this.user.username
       const avatars = [
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`,
+        `https://api.dicebear.com/7.x/avataaars/png?seed=${seed}`,
         `https://api.multiavatar.com/${seed}.svg`,
         `https://ui-avatars.com/api/?name=${encodeURIComponent(seed)}&background=random&size=90`
       ]

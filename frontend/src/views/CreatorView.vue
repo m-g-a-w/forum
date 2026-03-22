@@ -15,7 +15,7 @@
         <div class="user-actions">
           <el-dropdown @command="handleCommand">
             <span class="el-dropdown-link user-dropdown">
-               <el-avatar size="small" :src="user?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"></el-avatar>
+               <el-avatar size="small" :src="user?.avatar || (user ? 'https://api.dicebear.com/7.x/avataaars/png?seed=' + user.username : 'https://api.dicebear.com/7.x/avataaars/png?seed=default')"></el-avatar>
                <span class="username">{{ user?.username }}</span>
                <i class="el-icon-arrow-down el-icon--right"></i>
             </span>

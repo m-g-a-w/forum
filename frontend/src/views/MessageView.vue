@@ -30,7 +30,7 @@
           :style="{ animationDelay: index * 0.1 + 's' }"
         >
           <div class="message-avatar">
-            <el-avatar :size="50" :src="msg.avatar || defaultAvatar"></el-avatar>
+            <el-avatar :size="50" :src="msg.avatar || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + (msg.nickname || 'default')"></el-avatar>
           </div>
           <div class="message-content-wrap">
             <div class="message-info">
@@ -56,7 +56,7 @@ export default {
       messages: [],
       newMessage: '',
       submitting: false,
-      defaultAvatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+      defaultAvatar: ''
     }
   },
   created() {
