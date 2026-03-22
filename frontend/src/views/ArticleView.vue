@@ -116,7 +116,7 @@ export default {
         if (this.isPaywall) {
           this.showPaywall = true
         }
-      }).catch(err => {
+      }).catch(() => {
         // 文章不存在或获取失败，显示付费墙
         this.showPaywall = true
       })

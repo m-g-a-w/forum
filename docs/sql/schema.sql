@@ -1,4 +1,4 @@
--- 知识付费专栏发布与订阅管理系统 SQL 模型
+-- 论坛专栏发布与订阅管理系统 SQL 模型
 CREATE DATABASE IF NOT EXISTS `knowledge_platform` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `knowledge_platform`;
 

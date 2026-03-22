@@ -1,7 +1,7 @@
 <template>
   <div class="register-container">
     <el-card class="register-card">
-      <h2 style="text-align: center;">知识付费平台 - 注册</h2>
+      <h2 style="text-align: center;">论坛 - 注册</h2>
       <el-form :model="regForm" :rules="rules" ref="regForm" label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="regForm.username" placeholder="请输入用户名"></el-input>
