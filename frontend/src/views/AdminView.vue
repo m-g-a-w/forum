@@ -1,14 +1,11 @@
 <template>
   <div class="admin-container">
     <el-container style="height: 100vh;">
-      <el-aside width="220px" style="background-color: #545c64;" class="fade-in">
+      <el-aside width="220px" class="fade-in">
         <div class="logo">系统管理后台</div>
         <el-menu
           default-active="dashboard"
           class="el-menu-vertical"
-          background-color="#545c64"
-          text-color="#fff"
-          active-text-color="#ffd04b"
           @select="handleSelect"
         >
           <el-menu-item index="dashboard">
@@ -74,13 +71,13 @@
                <el-table-column prop="id" label="ID" width="80"></el-table-column>
                <el-table-column prop="username" label="用户名"></el-table-column>
                <el-table-column prop="email" label="邮箱"></el-table-column>
-               <el-table-column label="角色">
-                 <template slot-scope="scope">
-                   <el-tag v-if="scope.row.role === 0" type="info">普通用户</el-tag>
-                   <el-tag v-if="scope.row.role === 1" type="success">创作者</el-tag>
-                   <el-tag v-if="scope.row.role === 2" type="danger">管理员</el-tag>
-                 </template>
-               </el-table-column>
+              <el-table-column label="角色">
+                <template slot-scope="scope">
+                  <el-tag v-if="scope.row.role === 2" type="danger">管理员</el-tag>
+                  <el-tag v-else-if="scope.row.columnCount > 0" type="success">创作者</el-tag>
+                  <el-tag v-else type="info">普通用户</el-tag>
+                </template>
+              </el-table-column>
                <el-table-column label="状态" width="100">
                  <template slot-scope="scope">
                    <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
@@ -209,6 +206,11 @@ export default {
 </script>
 
 <style scoped>
+.admin-container {
+  --theme-color: #1a365d;
+  --theme-light: #4299e1;
+  --theme-bg: #f7fafc;
+}
 .logo {
   height: 60px;
   line-height: 60px;
@@ -216,22 +218,49 @@ export default {
   color: #fff;
   font-size: 18px;
   font-weight: bold;
-  border-bottom: 1px solid #333;
+  background: linear-gradient(135deg, #2c5282 0%, #4299e1 100%);
 }
 .el-header {
   background-color: #fff;
   color: #333;
   line-height: 60px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #e2e8f0;
 }
 .card-title {
-  color: #909399;
+  color: #4299e1;
   font-size: 14px;
 }
 .card-num {
   font-size: 32px;
-  color: #303133;
+  color: #2c5282;
   margin-top: 10px;
   font-weight: bold;
+}
+
+/* 科技蓝侧边栏 */
+.el-aside {
+  background: linear-gradient(180deg, #2c5282 0%, #4299e1 50%, #2c5282 100%) !important;
+}
+.el-menu {
+  border-right: none !important;
+  background: transparent !important;
+}
+.el-menu-item {
+  margin: 4px 8px;
+  border-radius: 8px;
+  color: #e2e8f0 !important;
+}
+.el-menu-item i {
+  color: #e2e8f0 !important;
+}
+.el-menu-item:hover {
+  background-color: rgba(66, 153, 225, 0.3) !important;
+}
+.el-menu-item.is-active {
+  background-color: #4299e1 !important;
+  color: #fff !important;
+}
+.el-menu-item.is-active i {
+  color: #fff !important;
 }
 </style>

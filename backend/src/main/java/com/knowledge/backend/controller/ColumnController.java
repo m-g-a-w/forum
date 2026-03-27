@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.knowledge.backend.common.Result;
 import com.knowledge.backend.entity.Article;
 import com.knowledge.backend.entity.ColumnInfo;
+import com.knowledge.backend.entity.User;
 import com.knowledge.backend.service.ArticleService;
 import com.knowledge.backend.service.ColumnInfoService;
+import com.knowledge.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,14 +24,22 @@ public class ColumnController {
     @Autowired
     private ArticleService articleService;
 
+    @Autowired
+    private UserService userService;
+
     @PostMapping("/create")
-    public Result<ColumnInfo> create(@RequestBody ColumnInfo columnInfo, @RequestAttribute("userId") Long userId, @RequestAttribute("role") Integer role) {
-        if (role != 1 && role != 2) {
-            return Result.error(403, "无权限创建专栏");
-        }
+    public Result<ColumnInfo> create(@RequestBody ColumnInfo columnInfo, @RequestAttribute("userId") Long userId) {
         columnInfo.setCreatorId(userId);
         columnInfo.setStatus(1); // 默认上架
         columnInfoService.save(columnInfo);
+
+        // 自动将用户角色改为创作者
+        User user = userService.getById(userId);
+        if (user != null && user.getRole() == 0) {
+            user.setRole(1);
+            userService.updateById(user);
+        }
+
         return Result.success(columnInfo);
     }
 

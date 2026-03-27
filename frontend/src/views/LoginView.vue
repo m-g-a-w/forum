@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <el-card class="login-card">
-      <h2 style="text-align: center;">论坛 - 登录</h2>
+      <h2 style="text-align: center;">{{ loginForm.role === 'admin' ? '管理员登录' : '论坛 - 登录' }}</h2>
       <el-form :model="loginForm" :rules="rules" ref="loginForm" label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="loginForm.username" placeholder="请输入用户名"></el-input>
@@ -9,10 +9,16 @@
         <el-form-item label="密码" prop="password">
           <el-input type="password" v-model="loginForm.password" placeholder="请输入密码"></el-input>
         </el-form-item>
+        <el-form-item label="登录类型" prop="role">
+          <el-radio-group v-model="loginForm.role">
+            <el-radio label="user">用户</el-radio>
+            <el-radio label="admin">管理员</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleLogin" style="width: 100%;">登录</el-button>
         </el-form-item>
-        <div style="text-align: right; font-size: 14px;">
+        <div style="text-align: right; font-size: 14px;" v-if="loginForm.role === 'user'">
           还没有账号？ <el-link type="primary" @click="$router.push('/register')">去注册</el-link>
         </div>
       </el-form>
@@ -29,11 +35,13 @@ export default {
     return {
       loginForm: {
         username: '',
-        password: ''
+        password: '',
+        role: 'user'
       },
       rules: {
         username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+        role: [{ required: true, message: '请选择登录类型', trigger: 'change' }]
       }
     }
   },
@@ -42,13 +50,20 @@ export default {
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
-          request.post('/user/login', this.loginForm).then(res => {
+          const loginData = {
+            username: this.loginForm.username,
+            password: this.loginForm.password
+          }
+          request.post('/user/login', loginData).then(res => {
             this.SET_TOKEN(res.token)
             this.SET_USER(res.user)
             this.$message.success('登录成功')
-            this.$router.push('/')
+            if (this.loginForm.role === 'admin') {
+              this.$router.push('/admin')
+            } else {
+              this.$router.push('/')
+            }
           }).catch((err) => {
-            // 登录失败时显示错误提示
             if (err && err.message) {
               this.$message.error(err.message)
             }

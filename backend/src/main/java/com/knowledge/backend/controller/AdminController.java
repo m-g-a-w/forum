@@ -34,11 +34,24 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public Result<List<User>> listUsers(@RequestAttribute("role") Integer role) {
+    public Result<List<Map<String, Object>>> listUsers(@RequestAttribute("role") Integer role) {
         try {
             checkAdmin(role);
-            List<User> list = userService.lambdaQuery().select(User.class, info -> !info.getColumn().equals("password")).list();
-            return Result.success(list);
+            List<User> users = userService.list();
+            List<Map<String, Object>> result = users.stream().map(user -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", user.getId());
+                map.put("username", user.getUsername());
+                map.put("email", user.getEmail());
+                map.put("role", user.getRole());
+                map.put("status", user.getStatus());
+                // 统计该用户的专栏数量
+                long columnCount = columnInfoService.lambdaQuery()
+                    .eq(ColumnInfo::getCreatorId, user.getId()).count();
+                map.put("columnCount", columnCount);
+                return map;
+            }).collect(java.util.stream.Collectors.toList());
+            return Result.success(result);
         } catch (Exception e) {
             return Result.error(403, e.getMessage());
         }
