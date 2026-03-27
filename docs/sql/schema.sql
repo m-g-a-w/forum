@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS `subscription` (
     `user_id` BIGINT NOT NULL COMMENT '购买者ID',
     `column_id` BIGINT NOT NULL COMMENT '购买的专栏ID',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '订阅/购买时间',
+    `expire_time` DATETIME DEFAULT NULL COMMENT '过期时间',
+    `duration_months` INT DEFAULT NULL COMMENT '订阅月数',
     UNIQUE INDEX `uk_user_column` (`user_id`, `column_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户专栏订阅表';
 

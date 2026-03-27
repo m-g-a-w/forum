@@ -7,6 +7,8 @@ import com.knowledge.backend.mapper.SubscriptionMapper;
 import com.knowledge.backend.service.SubscriptionService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper, Subscription> implements SubscriptionService {
 
@@ -15,9 +17,26 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper, Sub
         if (userId == null || columnId == null) {
             return false;
         }
-        long count = this.count(new QueryWrapper<Subscription>()
+        Subscription sub = this.getOne(new QueryWrapper<Subscription>()
                 .eq("user_id", userId)
                 .eq("column_id", columnId));
-        return count > 0;
+        // 检查订阅是否存在且未过期
+        if (sub != null && sub.getExpireTime() != null) {
+            return sub.getExpireTime().isAfter(LocalDateTime.now());
+        }
+        return sub != null && sub.getExpireTime() == null; // 兼容旧数据
+    }
+
+    public Subscription getValidSubscription(Long userId, Long columnId) {
+        if (userId == null || columnId == null) {
+            return null;
+        }
+        Subscription sub = this.getOne(new QueryWrapper<Subscription>()
+                .eq("user_id", userId)
+                .eq("column_id", columnId));
+        if (sub != null && sub.getExpireTime() != null && sub.getExpireTime().isAfter(LocalDateTime.now())) {
+            return sub;
+        }
+        return null;
     }
 }

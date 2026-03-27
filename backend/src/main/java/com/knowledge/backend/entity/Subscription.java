@@ -20,4 +20,6 @@ public class Subscription implements Serializable {
     private Long userId;
     private Long columnId;
     private LocalDateTime createTime;
+    private LocalDateTime expireTime;      // 过期时间
+    private Integer durationMonths;        // 订阅月数
 }
