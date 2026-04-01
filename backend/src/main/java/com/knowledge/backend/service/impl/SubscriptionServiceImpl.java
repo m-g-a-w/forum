@@ -34,7 +34,15 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper, Sub
         Subscription sub = this.getOne(new QueryWrapper<Subscription>()
                 .eq("user_id", userId)
                 .eq("column_id", columnId));
-        if (sub != null && sub.getExpireTime() != null && sub.getExpireTime().isAfter(LocalDateTime.now())) {
+        if (sub == null) {
+            return null;
+        }
+        // 兼容旧数据：expireTime 为 null 表示永久订阅
+        if (sub.getExpireTime() == null) {
+            return sub;
+        }
+        // 检查订阅是否未过期
+        if (sub.getExpireTime().isAfter(LocalDateTime.now())) {
             return sub;
         }
         return null;

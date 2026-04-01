@@ -170,8 +170,29 @@ public class SubscriptionController {
         }
 
         Subscription existing = subscriptionService.getValidSubscription(userId, columnId);
+        
         if (existing == null) {
+            // 如果用户是专栏创建者但没有订阅记录，自动创建订阅记录（免费）
+            if (column.getCreatorId().equals(userId)) {
+                LocalDateTime now = LocalDateTime.now();
+                Subscription newSub = new Subscription()
+                        .setUserId(userId)
+                        .setColumnId(columnId)
+                        .setCreateTime(now)
+                        .setExpireTime(now.plusMonths(months))
+                        .setDurationMonths(months);
+                subscriptionService.save(newSub);
+                return Result.success(newSub);
+            }
             return Result.error(400, "您还没有订阅该专栏，请先订阅");
+        } else if (column.getCreatorId().equals(userId)) {
+            // 创建者已经有订阅记录，续费也免费
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime baseTime = existing.getExpireTime().isAfter(now) ? existing.getExpireTime() : now;
+            existing.setExpireTime(baseTime.plusMonths(months));
+            existing.setDurationMonths(existing.getDurationMonths() + months);
+            subscriptionService.updateById(existing);
+            return Result.success(existing);
         }
 
         BigDecimal totalPrice = column.getPrice().multiply(new BigDecimal(months));
