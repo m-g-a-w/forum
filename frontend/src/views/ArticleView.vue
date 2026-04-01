@@ -125,7 +125,14 @@ export default {
     fetchComments() {
       const id = this.$route.params.id
       request.get('/comment/list/' + id).then(res => {
-        this.comments = res || []
+        // 处理 Result 格式的返回
+        if (res && res.data) {
+          this.comments = res.data || []
+        } else if (Array.isArray(res)) {
+          this.comments = res
+        } else {
+          this.comments = []
+        }
       }).catch(() => {
         this.comments = []
       })

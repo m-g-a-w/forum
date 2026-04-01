@@ -22,7 +22,7 @@
               </el-menu-item>
               <el-menu-item index="2">
                 <i class="el-icon-wallet"></i>
-                <span slot="title">钱包与资产</span>
+                <span slot="title">我的资产</span>
               </el-menu-item>
               <el-menu-item index="3">
                 <i class="el-icon-collection-tag"></i>
@@ -63,16 +63,35 @@
                </el-form>
             </div>
             
-            <!-- 钱包资产 -->
+            <!-- 我的资产 -->
             <div v-show="activeIndex === '2'" class="section fade-in">
-               <h2 class="section-title">钱包资产</h2>
+               <h2 class="section-title">我的资产</h2>
                <el-divider></el-divider>
                <div class="wallet-box">
                   <i class="el-icon-coin wallet-icon"></i>
                   <div class="wallet-amount">¥ {{ user?.balance || '0.00' }}</div>
-                  <p class="wallet-desc">您的当前系统虚拟可用余额</p>
-                  <el-button type="success" icon="el-icon-shopping-bag-1" @click="handleRecharge">模拟充值</el-button>
+                  <p class="wallet-desc">您的当前系统可用余额</p>
+                  <el-button type="success" icon="el-icon-shopping-bag-1" @click="showRechargeDialog">充值</el-button>
                </div>
+               
+               <!-- 充值记录 -->
+               <h3 style="margin-top: 40px; color: #606266;">充值记录</h3>
+               <el-table :data="rechargeRecords" style="width: 100%; margin-top: 15px;" v-loading="rechargeLoading">
+                 <el-table-column prop="rechargeNo" label="充值单号" width="200"></el-table-column>
+                 <el-table-column prop="amount" label="充值金额" width="120">
+                   <template slot-scope="scope">¥ {{ scope.row.amount }}</template>
+                 </el-table-column>
+                 <el-table-column prop="payMethodText" label="支付方式" width="120"></el-table-column>
+                 <el-table-column label="状态" width="100">
+                   <template slot-scope="scope">
+                     <el-tag :type="scope.row.status === 1 ? 'success' : (scope.row.status === 0 ? 'warning' : 'info')" size="small">
+                       {{ scope.row.statusText }}
+                     </el-tag>
+                   </template>
+                 </el-table-column>
+                 <el-table-column prop="createTime" label="充值时间"></el-table-column>
+               </el-table>
+               <el-empty v-if="!rechargeLoading && rechargeRecords.length === 0" description="暂无充值记录"></el-empty>
             </div>
             
             <!-- 我的订阅 -->
@@ -80,7 +99,7 @@
                <h2 class="section-title">我的已购专栏</h2>
                <el-divider></el-divider>
                <div v-if="subscriptions.length > 0" class="sub-grid">
-                 <div v-for="col in subscriptions" :key="col.id" class="sub-item" @click="$router.push('/column/' + col.id)">
+                 <div v-for="col in displayedSubscriptions" :key="col.id" class="sub-item" @click="$router.push('/column/' + col.id)">
                    <img :src="col.cover || 'https://picsum.photos/seed/' + col.id + '/400/240'" class="sub-cover" />
                    <div class="sub-info">
                      <p class="sub-title">{{ col.title }}</p>
@@ -94,6 +113,12 @@
                  <el-button type="primary" @click="$router.push('/')">前往探索</el-button>
                </el-empty>
                <div v-else style="text-align:center;padding:60px 0;"><el-spinner /></div>
+
+               <div class="load-more-container" v-if="hasMoreSubscriptions">
+                 <el-button round :loading="loadingMoreSubscriptions" @click="loadMoreSubscriptions" class="load-more-btn">
+                   加载更多 <i class="el-icon-arrow-down"></i>
+                 </el-button>
+               </div>
             </div>
 
             
@@ -122,6 +147,40 @@
         </el-col>
       </el-row>
     </div>
+
+    <!-- 充值对话框 -->
+    <el-dialog title="充值" :visible.sync="rechargeDialogVisible" width="500px" :close-on-click-modal="false">
+      <el-form label-width="100px">
+        <el-form-item label="充值金额">
+          <el-input-number v-model="rechargeForm.amount" :min="1" :max="10000" :precision="2" style="width: 200px;"></el-input-number>
+          <span style="margin-left: 10px; color: #909399;">元</span>
+        </el-form-item>
+        <el-form-item label="选择金额">
+          <el-radio-group v-model="rechargeForm.amount" style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <el-radio-button :label="10">10元</el-radio-button>
+            <el-radio-button :label="50">50元</el-radio-button>
+            <el-radio-button :label="100">100元</el-radio-button>
+            <el-radio-button :label="200">200元</el-radio-button>
+            <el-radio-button :label="500">500元</el-radio-button>
+            <el-radio-button :label="1000">1000元</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="支付方式">
+          <el-radio-group v-model="rechargeForm.payMethod">
+            <el-radio label="alipay">
+              <i class="el-icon-chat-line-round" style="color: #1677ff;"></i> 支付宝
+            </el-radio>
+            <el-radio label="wechat">
+              <i class="el-icon-wechat" style="color: #07c160;"></i> 微信支付
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="rechargeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="recharging" @click="confirmRecharge">确认支付 ¥{{ rechargeForm.amount }}</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -140,11 +199,29 @@ export default {
         email: ''
       },
       subscriptions: [],
-      subscriptionLoaded: false
+      subscriptionLoaded: false,
+      // 分页相关
+      subscriptionPage: 1,
+      subscriptionPageSize: 8,
+      loadingMoreSubscriptions: false,
+      rechargeDialogVisible: false,
+      rechargeForm: {
+        amount: 100,
+        payMethod: 'alipay'
+      },
+      recharging: false,
+      rechargeRecords: [],
+      rechargeLoading: false
     }
   },
   computed: {
-    ...mapState(['user'])
+    ...mapState(['user']),
+    displayedSubscriptions() {
+      return this.subscriptions.slice(0, this.subscriptionPage * this.subscriptionPageSize)
+    },
+    hasMoreSubscriptions() {
+      return this.subscriptions.length > this.subscriptionPage * this.subscriptionPageSize
+    }
   },
   mounted() {
     if (this.user) {
@@ -163,6 +240,52 @@ export default {
       if (index === '3' && !this.subscriptionLoaded) {
         this.fetchSubscriptions()
       }
+      if (index === '2') {
+        this.fetchRechargeRecords()
+      }
+    },
+    showRechargeDialog() {
+      this.rechargeForm.amount = 100
+      this.rechargeForm.payMethod = 'alipay'
+      this.rechargeDialogVisible = true
+    },
+    confirmRecharge() {
+      if (!this.rechargeForm.amount || this.rechargeForm.amount <= 0) {
+        this.$message.warning('请输入正确的充值金额')
+        return
+      }
+      this.recharging = true
+      // 1. 创建充值订单
+      request.post(`/user/recharge/create?amount=${this.rechargeForm.amount}&payMethod=${this.rechargeForm.payMethod}`)
+        .then(order => {
+          // 2. 模拟支付
+          return request.post(`/user/recharge/pay?rechargeNo=${order.rechargeNo}`)
+        })
+        .then(res => {
+          this.$message.success('充值成功！已向账户打入 ¥' + this.rechargeForm.amount)
+          this.$store.commit('SET_USER', res.user)
+          this.rechargeDialogVisible = false
+          this.fetchRechargeRecords()
+        })
+        .catch(err => {
+          this.$message.error(err.message || '充值失败')
+        })
+        .finally(() => {
+          this.recharging = false
+        })
+    },
+    fetchRechargeRecords() {
+      this.rechargeLoading = true
+      request.get('/user/recharge/records')
+        .then(res => {
+          this.rechargeRecords = res || []
+        })
+        .catch(() => {
+          this.rechargeRecords = []
+        })
+        .finally(() => {
+          this.rechargeLoading = false
+        })
     },
     saveProfile() {
       const payload = {
@@ -183,6 +306,7 @@ export default {
       }).catch(() => {})
     },
     fetchSubscriptions() {
+      this.resetSubscriptionsPagination()
       request.get('/subscription/my').then(res => {
         this.subscriptions = Array.isArray(res) ? res : []
         this.subscriptionLoaded = true
@@ -190,6 +314,16 @@ export default {
         this.subscriptions = []
         this.subscriptionLoaded = true
       })
+    },
+    loadMoreSubscriptions() {
+      this.loadingMoreSubscriptions = true
+      setTimeout(() => {
+        this.subscriptionPage++
+        this.loadingMoreSubscriptions = false
+      }, 500)
+    },
+    resetSubscriptionsPagination() {
+      this.subscriptionPage = 1
     }
   }
 }
@@ -336,5 +470,27 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* 限制标题为 1 行 */
+}
+.pay-tip {
+  background: #f4f9ff;
+  padding: 10px 15px;
+  border-radius: 6px;
+  color: #409eff;
+  font-size: 13px;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+.load-more-btn {
+  padding: 10px 35px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.load-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3);
 }
 </style>

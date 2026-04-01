@@ -22,7 +22,7 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="settings"><i class="el-icon-user"></i> 个人中心</el-dropdown-item>
-              <el-dropdown-item v-if="user?.role === 2" command="admin"><i class="el-icon-s-platform"></i> 系统运维</el-dropdown-item>
+              <el-dropdown-item v-if="user?.role === 2" command="admin"><i class="el-icon-s-platform"></i>后台管理</el-dropdown-item>
               <el-dropdown-item divided command="logout"><i class="el-icon-switch-button"></i> 退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -119,7 +119,7 @@
               </div>
             </div>
             <div class="column-feed-grid">
-               <div class="column-feed-card fade-in" v-for="(item, index) in displayColumns" :key="item.id" @click="goDetail(item.id)" :style="{ animationDelay: index * 0.1 + 's' }">
+               <div class="column-feed-card fade-in" v-for="(item, index) in displayedColumns" :key="item.id" @click="goDetail(item.id)" :style="{ animationDelay: index * 0.1 + 's' }">
                  <div class="card-cover-box">
                     <img :src="item.cover || 'https://picsum.photos/seed/' + item.id + '/600/400'" class="card-cover" />
                     <div class="card-tag" v-if="item.price === 0">FREE</div>
@@ -138,12 +138,14 @@
                </div>
             </div>
 
-            <div class="empty-state" v-if="displayColumns.length === 0">
+            <div class="empty-state" v-if="filteredColumns.length === 0">
               <el-empty description="什么都没找到呢~"></el-empty>
             </div>
 
-            <div style="text-align: center; margin-top: 30px;" v-if="displayColumns.length > 0">
-              <el-button round>加载更多 <i class="el-icon-arrow-down"></i></el-button>
+            <div class="load-more-container" v-if="hasMore">
+              <el-button round :loading="loadingMore" @click="loadMore" class="load-more-btn">
+                加载更多 <i class="el-icon-arrow-down"></i>
+              </el-button>
             </div>
 
           </el-card>
@@ -175,6 +177,10 @@ export default {
       isTyping: false,
       typingTimer: null,
       purchasedCount: 0,
+      // 分页相关
+      page: 1,
+      pageSize: 8,
+      loadingMore: false,
       // 备用一言（文学、影视、哲学）
       fallbackHitokotos: [
         { text: '满地黄花堆积，憔悴损，如今有谁堪摘', source: '李清照《声声慢》' },
@@ -189,15 +195,22 @@ export default {
     ...mapState(['user']),
     ...mapGetters(['isLoggedIn']),
     recommendList() {
-      // 挑出前几个作为推荐（打散或随缘展现）
-      return [...this.columns].sort((a,b) => b.id - a.id).slice(0, 4)
+      // 按热度降序排列，取前4个
+      return [...this.columns].sort((a, b) => (b.heat || 0) - (a.heat || 0)).slice(0, 4)
     },
-    displayColumns() {
+    filteredColumns() {
       let filtered = this.columns
       if (this.searchKey) {
         filtered = filtered.filter(col => col.title.includes(this.searchKey))
       }
       return filtered
+    },
+    displayedColumns() {
+      let filtered = this.filteredColumns
+      return filtered.slice(0, this.page * this.pageSize)
+    },
+    hasMore() {
+      return this.filteredColumns.length > this.page * this.pageSize
     }
   },
   created() {
@@ -318,6 +331,7 @@ export default {
       }
     },
     fetchColumns() {
+      this.resetPagination()
       if (this.feedType === 'my_sub') {
         request.get('/subscription/my').then(res => {
           this.columns = res
@@ -346,6 +360,16 @@ export default {
     },
     goDetail(id) {
       this.$router.push('/column/' + id)
+    },
+    loadMore() {
+      this.loadingMore = true
+      setTimeout(() => {
+        this.page++
+        this.loadingMore = false
+      }, 500)
+    },
+    resetPagination() {
+      this.page = 1
     }
   }
 }
@@ -389,6 +413,11 @@ export default {
   position: sticky;
   top: 80px;
   align-self: flex-start;
+  height: fit-content;
+}
+/* 主内容列保持最小高度防止抖动 */
+.main-col {
+  min-height: 400px;
 }
 .header-inner {
   max-width: 1300px;
@@ -708,6 +737,7 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
   margin-top: 10px;
+  min-height: 300px;
 }
 .column-feed-card {
   background: #fff;
@@ -719,6 +749,8 @@ export default {
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   border: 1px solid #f0f2f5;
+  will-change: transform, opacity;
+  contain: layout style paint;
 }
 .column-feed-card:hover {
   transform: translateY(-8px);
@@ -842,13 +874,28 @@ export default {
 }
 
 @keyframes fadeUp {
-  0% { transform: translateY(30px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @media screen and (max-width: 900px) {
   .column-feed-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+.load-more-btn {
+  padding: 10px 35px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.load-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3);
 }
 </style>

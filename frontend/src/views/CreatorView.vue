@@ -38,7 +38,7 @@
             </div>
             
             <div class="column-grid">
-               <div v-for="col in myColumns" :key="col.id" class="column-card-premium fade-in">
+               <div v-for="col in displayedColumns" :key="col.id" class="column-card-premium fade-in">
                   <div class="card-cover-wrapper">
                     <img :src="col.cover || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=500&q=80'" class="card-cover" />
                     <div class="card-status-tag" :class="{ 'is-published': col.status === 1 }">
@@ -60,6 +60,19 @@
                </div>
                
                <el-empty v-if="myColumns.length === 0" description="您还没有建立专栏，点击上方按钮开启第一步吧" style="grid-column: span 3"></el-empty>
+            </div>
+            
+            <div v-if="hasMoreColumns" class="load-more-container">
+              <el-button 
+                type="primary" 
+                plain 
+                round 
+                :loading="loadingMoreColumns"
+                @click="loadMoreColumns"
+                class="load-more-btn"
+              >
+                加载更多
+              </el-button>
             </div>
           </div>
           
@@ -168,7 +181,7 @@
       <div class="editor-header">
         <div class="editor-left">
           <el-button icon="el-icon-close" circle @click="showPublishArticle = false"></el-button>
-          <input class="title-input" v-model="articleForm.title" placeholder="在此注入您的标题..." />
+          <input class="title-input" v-model="articleForm.title" placeholder="请在此编写标题..." />
         </div>
         <div class="editor-right">
           <div class="config-item">
@@ -217,11 +230,21 @@ export default {
       showCreateChapter: false,
       chapterForm: { title: '', sortOrder: 0 },
       showPublishArticle: false,
-      articleForm: { id: null, title: '', content: '', chapterId: null, isFree: 0, sortOrder: 0 }
+      articleForm: { id: null, title: '', content: '', chapterId: null, isFree: 0, sortOrder: 0 },
+      // 分页相关
+      columnsPage: 1,
+      columnsPageSize: 8,
+      loadingMoreColumns: false
     }
   },
   computed: {
-    ...mapState(['user'])
+    ...mapState(['user']),
+    displayedColumns() {
+      return this.myColumns.slice(0, this.columnsPage * this.columnsPageSize)
+    },
+    hasMoreColumns() {
+      return this.myColumns.length > this.columnsPage * this.columnsPageSize
+    }
   },
   created() {
     this.fetchColumns()
@@ -242,6 +265,7 @@ export default {
       this.$router.push('/login')
     },
     fetchColumns() {
+      this.resetColumnsPagination()
       request.get('/column/my').then(res => {
         this.myColumns = res
       })
@@ -324,7 +348,7 @@ export default {
     },
     publishArticle() {
       if (!this.articleForm.title || !this.articleForm.content) {
-        return this.$message.warning('标题与思想不可或缺')
+        return this.$message.warning('请编写标题')
       }
       this.articleForm.columnId = this.currentColumn.id
       request.post('/article/publish', this.articleForm).then(() => {
@@ -332,6 +356,16 @@ export default {
          this.showPublishArticle = false
          this.fetchArticles(this.currentColumn.id)
       })
+    },
+    loadMoreColumns() {
+      this.loadingMoreColumns = true
+      setTimeout(() => {
+        this.columnsPage++
+        this.loadingMoreColumns = false
+      }, 500)
+    },
+    resetColumnsPagination() {
+      this.columnsPage = 1
     }
   }
 }
@@ -648,5 +682,22 @@ export default {
 .glass-dialog ::v-deep .el-dialog__header {
   padding: 25px 25px 10px;
   font-weight: 800;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  padding-bottom: 20px;
+}
+.load-more-btn {
+  padding: 12px 40px;
+  font-size: 14px;
+  border-radius: 25px;
+  transition: all 0.3s;
+}
+.load-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3);
 }
 </style>
