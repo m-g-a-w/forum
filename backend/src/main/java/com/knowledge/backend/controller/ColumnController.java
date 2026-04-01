@@ -4,14 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.knowledge.backend.common.Result;
 import com.knowledge.backend.entity.Article;
 import com.knowledge.backend.entity.ColumnInfo;
+import com.knowledge.backend.entity.Subscription;
 import com.knowledge.backend.entity.User;
 import com.knowledge.backend.service.ArticleService;
 import com.knowledge.backend.service.ColumnInfoService;
+import com.knowledge.backend.service.SubscriptionService;
 import com.knowledge.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,6 +30,9 @@ public class ColumnController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private SubscriptionService subscriptionService;
 
     @PostMapping("/create")
     public Result<ColumnInfo> create(@RequestBody ColumnInfo columnInfo, @RequestAttribute("userId") Long userId) {
@@ -44,12 +51,42 @@ public class ColumnController {
     }
 
     @GetMapping("/list/public")
-    public Result<List<ColumnInfo>> listPublic() {
+    public Result<List<Map<String, Object>>> listPublic() {
         List<ColumnInfo> list = columnInfoService.lambdaQuery()
                 .eq(ColumnInfo::getStatus, 1)
                 .orderByDesc(ColumnInfo::getCreateTime)
                 .list();
-        return Result.success(list);
+
+        // 转换为包含热度的 Map
+        List<Map<String, Object>> result = list.stream().map(column -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", column.getId());
+            map.put("creatorId", column.getCreatorId());
+            map.put("title", column.getTitle());
+            map.put("description", column.getDescription());
+            map.put("cover", column.getCover());
+            map.put("price", column.getPrice());
+            map.put("status", column.getStatus());
+            map.put("createTime", column.getCreateTime());
+            map.put("updateTime", column.getUpdateTime());
+            map.put("articleCount", column.getArticleCount());
+            // 计算热度：订阅数量 + 续费次数
+            Long subscriptionCount = subscriptionService.lambdaQuery()
+                    .eq(Subscription::getColumnId, column.getId())
+                    .count();
+            // 获取该专栏的总订阅月数（续费累加）
+            List<Subscription> subs = subscriptionService.lambdaQuery()
+                    .eq(Subscription::getColumnId, column.getId())
+                    .list();
+            int totalMonths = subs.stream()
+                    .mapToInt(s -> s.getDurationMonths() != null ? s.getDurationMonths() : 0)
+                    .sum();
+            // 热度 = 订阅人数 * 10 + 总订阅月数
+            map.put("heat", subscriptionCount * 10 + totalMonths);
+            return map;
+        }).collect(Collectors.toList());
+
+        return Result.success(result);
     }
 
     @GetMapping("/my")

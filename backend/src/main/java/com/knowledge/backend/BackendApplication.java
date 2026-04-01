@@ -19,6 +19,20 @@ public class BackendApplication {
     public CommandLineRunner initDatabase(JdbcTemplate jdbcTemplate) {
         return args -> {
             try {
+                // 创建充值记录表
+                jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `recharge_record` (" +
+                        "    `id` BIGINT AUTO_INCREMENT PRIMARY KEY," +
+                        "    `user_id` BIGINT NOT NULL COMMENT '用户ID'," +
+                        "    `recharge_no` VARCHAR(64) NOT NULL COMMENT '充值单号'," +
+                        "    `amount` DECIMAL(10,2) NOT NULL COMMENT '充值金额'," +
+                        "    `pay_method` VARCHAR(20) COMMENT '支付方式: alipay/wechat/bankcard'," +
+                        "    `status` INT NOT NULL DEFAULT 0 COMMENT '状态: 0-待支付, 1-已成功, 2-已取消'," +
+                        "    `pay_time` DATETIME COMMENT '支付成功时间'," +
+                        "    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'," +
+                        "    INDEX `idx_user` (`user_id`)," +
+                        "    INDEX `idx_recharge_no` (`recharge_no`)" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='充值记录表'");
+
                 // 创建章节表
                 jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `chapter` (" +
                         "    `id` BIGINT AUTO_INCREMENT PRIMARY KEY," +
