@@ -49,25 +49,36 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public Result<List<Map<String, Object>>> listUsers(@RequestAttribute("role") Integer role) {
+    public Result<Map<String, Object>> listUsers(
+            @RequestAttribute("role") Integer role,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "pageSize", defaultValue = "8") Integer pageSize) {
         try {
             checkAdmin(role);
-            List<User> users = userService.list();
-            List<Map<String, Object>> result = users.stream().map(user -> {
+            Page<User> pageParam = new Page<>(page, pageSize);
+            IPage<User> userPage = userService.page(pageParam);
+
+            List<Map<String, Object>> records = userPage.getRecords().stream().map(user -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", user.getId());
                 map.put("username", user.getUsername());
                 map.put("email", user.getEmail());
                 map.put("role", user.getRole());
                 map.put("status", user.getStatus());
-                // 统计该用户的专栏数量
                 long columnCount = columnInfoService.lambdaQuery()
                     .eq(ColumnInfo::getCreatorId, user.getId()).count();
                 map.put("columnCount", columnCount);
                 return map;
             }).collect(java.util.stream.Collectors.toList());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("records", records);
+            result.put("total", userPage.getTotal());
+            result.put("current", userPage.getCurrent());
+            result.put("size", userPage.getSize());
             return Result.success(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error(403, e.getMessage());
         }
     }
@@ -87,11 +98,25 @@ public class AdminController {
     }
 
     @GetMapping("/columns")
-    public Result<List<ColumnInfo>> listColumns(@RequestAttribute("role") Integer role) {
+    public Result<Map<String, Object>> listColumns(
+            @RequestAttribute("role") Integer role,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "pageSize", defaultValue = "8") Integer pageSize) {
         try {
             checkAdmin(role);
-            return Result.success(columnInfoService.list());
+            Page<ColumnInfo> pageParam = new Page<>(page, pageSize);
+            IPage<ColumnInfo> columnPage = columnInfoService.page(pageParam);
+
+            List<ColumnInfo> records = columnPage.getRecords();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("records", records);
+            result.put("total", columnPage.getTotal());
+            result.put("current", columnPage.getCurrent());
+            result.put("size", columnPage.getSize());
+            return Result.success(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error(403, e.getMessage());
         }
     }

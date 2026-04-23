@@ -18,6 +18,7 @@
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/ChapterService.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/ColumnInfoService.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/MessageMapper.java
+/Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/config/MyBatisPlusConfig.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/entity/Comment.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/ColumnInfoMapper.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/impl/SubscriptionServiceImpl.java

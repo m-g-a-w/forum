@@ -50,7 +50,7 @@
           <!-- 数据看板 -->
           <div v-show="activeTab === 'dashboard'">
              <h2 class="section-title">全局数据看板</h2>
-             
+
              <!-- 核心指标卡片 -->
              <el-row :gutter="20" style="margin-top: 20px;">
                <el-col :span="6">
@@ -98,11 +98,21 @@
                    <div slot="header" class="card-header">
                      <span><i class="el-icon-time"></i> 近期活跃用户</span>
                    </div>
-                   <el-table :data="recentUsers" style="width: 100%" size="small">
+                   <el-table :data="recentUsersPaged" style="width: 100%" size="small">
                      <el-table-column prop="username" label="用户名"></el-table-column>
                      <el-table-column prop="email" label="邮箱" width="180"></el-table-column>
                      <el-table-column prop="createTime" label="注册时间" width="160"></el-table-column>
                    </el-table>
+                   <el-pagination
+                     v-if="recentUsersTotal > 0"
+                     style="margin-top: 15px; text-align: center;"
+                     background
+                     layout="prev, pager, next"
+                     :total="recentUsersTotal"
+                     :page-size="recentUsersPageSize"
+                     :current-page="recentUsersPage"
+                     @current-change="handleRecentUsersPageChange"
+                   ></el-pagination>
                  </el-card>
                </el-col>
                <el-col :span="8">
@@ -142,7 +152,7 @@
                    <div slot="header" class="card-header">
                      <span><i class="el-icon-document"></i> 最新订单记录</span>
                    </div>
-                   <el-table :data="recentOrders" style="width: 100%" size="small">
+                   <el-table :data="recentOrdersPaged" style="width: 100%" size="small">
                      <el-table-column prop="id" label="订单ID" width="80"></el-table-column>
                      <el-table-column prop="username" label="用户" width="120"></el-table-column>
                      <el-table-column prop="columnId" label="专栏ID" width="80"></el-table-column>
@@ -160,6 +170,16 @@
                      </el-table-column>
                      <el-table-column prop="createTime" label="下单时间"></el-table-column>
                    </el-table>
+                   <el-pagination
+                     v-if="recentOrdersTotal > 0"
+                     style="margin-top: 15px; text-align: center;"
+                     background
+                     layout="prev, pager, next"
+                     :total="recentOrdersTotal"
+                     :page-size="recentOrdersPageSize"
+                     :current-page="recentOrdersPage"
+                     @current-change="handleRecentOrdersPageChange"
+                   ></el-pagination>
                  </el-card>
                </el-col>
              </el-row>
@@ -188,8 +208,8 @@
                </el-table-column>
                <el-table-column label="操作" width="150" v-if="user?.role === 2">
                  <template slot-scope="scope">
-                   <el-button 
-                     size="mini" 
+                   <el-button
+                     size="mini"
                      :type="scope.row.status === 1 ? 'danger' : 'success'"
                      @click="changeUserStatus(scope.row)"
                      v-if="scope.row.role !== 2"
@@ -199,6 +219,16 @@
                  </template>
                </el-table-column>
              </el-table>
+             <el-pagination
+               v-if="usersTotal > 0"
+               style="margin-top: 20px; text-align: center;"
+               background
+               layout="prev, pager, next, total"
+               :total="usersTotal"
+               :page-size="usersPageSize"
+               :current-page="usersPage"
+               @current-change="handleUsersPageChange"
+             ></el-pagination>
           </div>
 
           <!-- 专栏审核 -->
@@ -227,6 +257,16 @@
                  </template>
                </el-table-column>
              </el-table>
+             <el-pagination
+               v-if="columnsTotal > 0"
+               style="margin-top: 20px; text-align: center;"
+               background
+               layout="prev, pager, next, total"
+               :total="columnsTotal"
+               :page-size="columnsPageSize"
+               :current-page="columnsPage"
+               @current-change="handleColumnsPageChange"
+             ></el-pagination>
           </div>
 
           <!-- 评论管理 -->
@@ -354,10 +394,26 @@ export default {
         todayOrder: 0,
         totalRevenue: 0
       },
+      // 用户管理相关
       users: [],
+      usersTotal: 0,
+      usersPage: 1,
+      usersPageSize: 8,
+      // 专栏审核相关
       columns: [],
+      columnsTotal: 0,
+      columnsPage: 1,
+      columnsPageSize: 8,
+      // 近期活跃用户
       recentUsers: [],
+      recentUsersTotal: 0,
+      recentUsersPage: 1,
+      recentUsersPageSize: 8,
+      // 最新订单
       recentOrders: [],
+      recentOrdersTotal: 0,
+      recentOrdersPage: 1,
+      recentOrdersPageSize: 8,
       // 评论管理相关
       comments: [],
       commentStats: { total: 0, today: 0 },
@@ -369,7 +425,17 @@ export default {
     }
   },
   computed: {
-    ...mapState(['user'])
+    ...mapState(['user']),
+    recentUsersPaged() {
+      const start = (this.recentUsersPage - 1) * this.recentUsersPageSize
+      const end = start + this.recentUsersPageSize
+      return this.recentUsers.slice(start, end)
+    },
+    recentOrdersPaged() {
+      const start = (this.recentOrdersPage - 1) * this.recentOrdersPageSize
+      const end = start + this.recentOrdersPageSize
+      return this.recentOrders.slice(start, end)
+    }
   },
   created() {
     this.fetchDashboard()
@@ -402,18 +468,56 @@ export default {
         const { recentUsers, recentOrders, ...statData } = res
         this.stat = { ...this.stat, ...statData }
         this.recentUsers = recentUsers || []
+        this.recentUsersTotal = (recentUsers || []).length
         this.recentOrders = recentOrders || []
-      }).catch(() => {})
+        this.recentOrdersTotal = (recentOrders || []).length
+      })
     },
     fetchUsers() {
-      request.get('/admin/users').then(res => {
-        this.users = res
+      request.get('/admin/users', {
+        params: {
+          page: this.usersPage,
+          pageSize: this.usersPageSize
+        }
+      }).then(res => {
+        // 兼容 records 和 list 两种返回格式
+        const list = (res && res.list) ? res.list : (res && res.records) ? res.records : []
+        const total = (res && res.total) ? res.total : (list.length || 0)
+        this.users = list
+        this.usersTotal = total
+      }).catch(err => {
+        console.error('Fetch users error:', err)
       })
     },
     fetchColumns() {
-      request.get('/admin/columns').then(res => {
-        this.columns = res
+      request.get('/admin/columns', {
+        params: {
+          page: this.columnsPage,
+          pageSize: this.columnsPageSize
+        }
+      }).then(res => {
+        // 兼容 records 和 list 两种返回格式
+        const list = (res && res.list) ? res.list : (res && res.records) ? res.records : []
+        const total = (res && res.total) ? res.total : (list.length || 0)
+        this.columns = list
+        this.columnsTotal = total
+      }).catch(err => {
+        console.error('Fetch columns error:', err)
       })
+    },
+    handleUsersPageChange(page) {
+      this.usersPage = page
+      this.fetchUsers()
+    },
+    handleColumnsPageChange(page) {
+      this.columnsPage = page
+      this.fetchColumns()
+    },
+    handleRecentUsersPageChange(page) {
+      this.recentUsersPage = page
+    },
+    handleRecentOrdersPageChange(page) {
+      this.recentOrdersPage = page
     },
     changeUserStatus(row) {
       const newStatus = row.status === 1 ? 0 : 1
