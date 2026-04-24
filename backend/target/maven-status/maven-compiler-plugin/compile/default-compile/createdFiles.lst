@@ -10,6 +10,7 @@ com/knowledge/backend/common/Result.class
 com/knowledge/backend/BackendApplication.class
 com/knowledge/backend/service/ChapterService.class
 com/knowledge/backend/entity/ColumnInfo.class
+com/knowledge/backend/controller/AlipayController.class
 com/knowledge/backend/service/impl/SubscriptionServiceImpl.class
 com/knowledge/backend/controller/UserController.class
 com/knowledge/backend/service/ColumnInfoService.class
@@ -19,11 +20,13 @@ com/knowledge/backend/entity/Orders.class
 com/knowledge/backend/mapper/SubscriptionMapper.class
 com/knowledge/backend/entity/Message.class
 com/knowledge/backend/controller/ChapterController.class
+com/knowledge/backend/config/AlipayConfig.class
 com/knowledge/backend/service/CommentService.class
 com/knowledge/backend/service/impl/ArticleServiceImpl.class
 com/knowledge/backend/controller/ArticleController.class
 com/knowledge/backend/service/impl/CommentServiceImpl.class
 com/knowledge/backend/controller/CommentController.class
+com/knowledge/backend/config/MyBatisPlusConfig.class
 com/knowledge/backend/service/impl/ColumnInfoServiceImpl.class
 com/knowledge/backend/service/MessageService.class
 com/knowledge/backend/mapper/ChapterMapper.class

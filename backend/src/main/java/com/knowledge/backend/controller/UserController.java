@@ -1,5 +1,7 @@
 package com.knowledge.backend.controller;
 
+import com.alipay.easysdk.factory.Factory;
+import com.alipay.easysdk.payment.face_to_face.models.AlipayTradePayResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.knowledge.backend.common.Result;
 import com.knowledge.backend.entity.Orders;
@@ -10,6 +12,7 @@ import com.knowledge.backend.service.RechargeRecordService;
 import com.knowledge.backend.service.UserService;
 import com.knowledge.backend.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,6 +35,9 @@ public class UserController {
 
     @Autowired
     private RechargeRecordService rechargeRecordService;
+
+    @Value("${alipay.sandbox:false}")
+    private boolean alipaySandbox;
 
     @Autowired
     private OrdersService ordersService;
@@ -112,10 +118,10 @@ public class UserController {
      * 创建充值订单
      * @param userId 用户ID
      * @param amount 充值金额
-     * @param payMethod 支付方式：alipay-支付宝, wechat-微信, bankcard-银行卡
+     * @param payMethod 支付方式：alipay-支付宝
      */
     @PostMapping("/recharge/create")
-    public Result<RechargeRecord> createRechargeOrder(
+    public Result<Map<String, Object>> createRechargeOrder(
             @RequestAttribute("userId") Long userId,
             @RequestParam BigDecimal amount,
             @RequestParam String payMethod) {
@@ -126,20 +132,48 @@ public class UserController {
         if (amount.compareTo(BigDecimal.ZERO) <= 0 || amount.compareTo(new BigDecimal("10000")) > 0) {
             return Result.error(400, "充值金额必须在0.01-10000元之间");
         }
-        if (!payMethod.matches("alipay|wechat|bankcard")) {
+        if (!payMethod.matches("alipay")) {
             return Result.error(400, "不支持的支付方式");
         }
-        
+
         RechargeRecord record = new RechargeRecord();
         record.setUserId(userId);
         record.setRechargeNo("RC" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 8));
         record.setAmount(amount);
         record.setPayMethod(payMethod);
-        record.setStatus(0); // 待支付
+        record.setStatus(0);
         record.setCreateTime(LocalDateTime.now());
         rechargeRecordService.save(record);
-        
-        return Result.success(record);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("record", record);
+
+        // 支付宝沙箱当面付 - 生成二维码链接
+        if ("alipay".equals(payMethod) && alipaySandbox) {
+            try {
+                // 使用当面付 API 生成二维码链接
+                com.alipay.easysdk.payment.face_to_face.models.AlipayTradePrecreateResponse response =
+                    Factory.Payment.FaceToFace().precreate(
+                        "知识平台-充值 " + amount + "元",
+                        record.getRechargeNo(),
+                        amount.toString()
+                    );
+                if ("10003".equals(response.code)) {
+                    result.put("qrCode", response.qrCode);  // 二维码链接
+                    result.put("payForm", null);
+                } else {
+                    result.put("qrCode", null);
+                    result.put("error", "支付宝二维码生成失败: " + response.msg);
+                }
+            } catch (Exception e) {
+                System.err.println(">> [ERROR] Alipay QR code error: " + e.getMessage());
+                result.put("qrCode", null);
+                result.put("payForm", null);
+                result.put("error", "支付宝支付初始化失败: " + e.getMessage());
+            }
+        }
+
+        return Result.success(result);
     }
 
     /**
@@ -242,5 +276,92 @@ public class UserController {
             case 2: return "已取消";
             default: return "未知";
         }
+    }
+
+    /**
+     * 支付宝沙箱支付回调
+     */
+    @PostMapping("/alipay/notify")
+    public String alipayNotify(@RequestParam Map<String, String> params) {
+        try {
+            boolean signVerified = Factory.Payment.Common().verifyNotify(params);
+            if (signVerified) {
+                String tradeStatus = params.get("trade_status");
+                String outTradeNo = params.get("out_trade_no");
+
+                if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+                    RechargeRecord record = rechargeRecordService.lambdaQuery()
+                            .eq(RechargeRecord::getRechargeNo, outTradeNo)
+                            .one();
+                    if (record != null && record.getStatus() == 0) {
+                        record.setStatus(1);
+                        record.setPayTime(LocalDateTime.now());
+                        rechargeRecordService.updateById(record);
+
+                        User user = userService.getById(record.getUserId());
+                        if (user != null) {
+                            user.setBalance(user.getBalance().add(record.getAmount()));
+                            user.setUpdateTime(LocalDateTime.now());
+                            userService.updateById(user);
+                        }
+                    }
+                }
+                return "success";
+            }
+        } catch (Exception e) {
+            System.err.println(">> [ERROR] Alipay notify error: " + e.getMessage());
+        }
+        return "fail";
+    }
+
+    /**
+     * 轮询查询支付状态
+     */
+    @GetMapping("/recharge/status")
+    public Result<Map<String, Object>> checkRechargeStatus(@RequestParam String rechargeNo) {
+        RechargeRecord record = rechargeRecordService.lambdaQuery()
+                .eq(RechargeRecord::getRechargeNo, rechargeNo)
+                .one();
+        if (record == null) {
+            return Result.error(404, "订单不存在");
+        }
+
+        // 如果订单状态已是成功，直接返回
+        if (record.getStatus() == 1) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", record.getStatus());
+            result.put("statusText", getStatusText(record.getStatus()));
+            return Result.success(result);
+        }
+
+        // 沙箱环境下，尝试查询支付宝交易状态
+        if ("alipay".equals(record.getPayMethod()) && alipaySandbox) {
+            try {
+                com.alipay.easysdk.payment.common.models.AlipayTradeQueryResponse response =
+                    Factory.Payment.Common().query(record.getRechargeNo());
+
+                if ("TRADE_SUCCESS".equals(response.tradeStatus) || "TRADE_FINISHED".equals(response.tradeStatus)) {
+                    // 更新订单状态
+                    record.setStatus(1);
+                    record.setPayTime(LocalDateTime.now());
+                    rechargeRecordService.updateById(record);
+
+                    // 更新用户余额
+                    User user = userService.getById(record.getUserId());
+                    if (user != null) {
+                        user.setBalance(user.getBalance().add(record.getAmount()));
+                        user.setUpdateTime(LocalDateTime.now());
+                        userService.updateById(user);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println(">> [WARN] Query trade status failed: " + e.getMessage());
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", record.getStatus());
+        result.put("statusText", getStatusText(record.getStatus()));
+        return Result.success(result);
     }
 }

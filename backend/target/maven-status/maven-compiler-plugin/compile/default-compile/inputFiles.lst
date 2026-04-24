@@ -12,6 +12,7 @@
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/entity/Orders.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/SubscriptionService.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/entity/RechargeRecord.java
+/Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/controller/AlipayController.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/interceptor/JwtInterceptor.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/UserMapper.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/impl/ColumnInfoServiceImpl.java
@@ -20,6 +21,7 @@
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/MessageMapper.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/config/MyBatisPlusConfig.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/entity/Comment.java
+/Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/config/AlipayConfig.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/ColumnInfoMapper.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/service/impl/SubscriptionServiceImpl.java
 /Users/Zhuanz1/Desktop/毕业设计/code/backend/src/main/java/com/knowledge/backend/mapper/OrdersMapper.java
