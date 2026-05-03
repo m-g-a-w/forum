@@ -1,7 +1,7 @@
 package com.knowledge.backend.controller;
 
 import com.alipay.easysdk.factory.Factory;
-import com.alipay.easysdk.payment.face_to_face.models.AlipayTradePayResponse;
+import com.alipay.easysdk.payment.facetoface.models.AlipayTradePrecreateResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.knowledge.backend.common.Result;
 import com.knowledge.backend.entity.Orders;
@@ -38,6 +38,10 @@ public class UserController {
 
     @Value("${alipay.sandbox:false}")
     private boolean alipaySandbox;
+
+    /** 为 false 时不调支付宝预下单，避免公钥未配好时验签失败；前端会走模拟支付 */
+    @Value("${alipay.precreate-enabled:true}")
+    private boolean alipayPrecreateEnabled;
 
     @Autowired
     private OrdersService ordersService;
@@ -148,28 +152,37 @@ public class UserController {
         Map<String, Object> result = new HashMap<>();
         result.put("record", record);
 
-        // 支付宝沙箱当面付 - 生成二维码链接
-        if ("alipay".equals(payMethod) && alipaySandbox) {
+        // 支付宝沙箱当面付 - 生成二维码链接（precreate-enabled=false 时跳过，仅用模拟支付）
+        if ("alipay".equals(payMethod) && alipaySandbox && alipayPrecreateEnabled) {
             try {
                 // 使用当面付 API 生成二维码链接
-                com.alipay.easysdk.payment.face_to_face.models.AlipayTradePrecreateResponse response =
-                    Factory.Payment.FaceToFace().precreate(
+                AlipayTradePrecreateResponse response =
+                    Factory.Payment.FaceToFace().preCreate(
                         "知识平台-充值 " + amount + "元",
                         record.getRechargeNo(),
                         amount.toString()
                     );
-                if ("10003".equals(response.code)) {
-                    result.put("qrCode", response.qrCode);  // 二维码链接
+                // 网关业务成功码为 10000（原误写 10003 会导致永远拿不到二维码）
+                if (response != null && "10000".equals(response.code)) {
+                    result.put("qrCode", response.qrCode);
                     result.put("payForm", null);
                 } else {
                     result.put("qrCode", null);
-                    result.put("error", "支付宝二维码生成失败: " + response.msg);
+                    String detail = response != null
+                            ? (response.msg + (response.subMsg != null ? " - " + response.subMsg : ""))
+                            : "无响应";
+                    result.put("error", "支付宝二维码生成失败: " + detail);
                 }
             } catch (Exception e) {
                 System.err.println(">> [ERROR] Alipay QR code error: " + e.getMessage());
                 result.put("qrCode", null);
                 result.put("payForm", null);
-                result.put("error", "支付宝支付初始化失败: " + e.getMessage());
+                String hint = "验签失败多为「支付宝公钥」填错：须从开放平台该应用的「接口加签方式」复制支付宝公钥（不是应用公钥）；"
+                        + "或先在 application.yml 设置 alipay.precreate-enabled: false 使用模拟支付。";
+                String msg = e.getMessage() != null && e.getMessage().contains("验签")
+                        ? hint + " 原始错误: " + e.getMessage()
+                        : "支付宝支付初始化失败: " + e.getMessage();
+                result.put("error", msg);
             }
         }
 

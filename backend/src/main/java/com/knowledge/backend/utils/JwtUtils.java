@@ -67,6 +67,10 @@ public class JwtUtils {
         if (token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        return getClaimsFromToken(token).get("userId", Long.class);
+        Object raw = getClaimsFromToken(token).get("userId");
+        if (raw instanceof Number) {
+            return ((Number) raw).longValue();
+        }
+        return null;
     }
 }

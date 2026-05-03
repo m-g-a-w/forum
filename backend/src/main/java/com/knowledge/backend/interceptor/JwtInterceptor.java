@@ -32,8 +32,16 @@ public class JwtInterceptor implements HandlerInterceptor {
             token = token.substring(7);
             if (jwtUtils.validateToken(token)) {
                 Claims claims = jwtUtils.getClaimsFromToken(token);
-                request.setAttribute("userId", claims.get("userId", Long.class));
-                request.setAttribute("role", claims.get("role", Integer.class));
+                Long userId = claimToLong(claims.get("userId"));
+                Integer role = claimToInteger(claims.get("role"));
+                if (userId == null) {
+                    response.setStatus(401);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\": 401, \"message\": \"Invalid token claims\"}");
+                    return false;
+                }
+                request.setAttribute("userId", userId);
+                request.setAttribute("role", role);
                 return true;
             }
         }
@@ -42,5 +50,32 @@ public class JwtInterceptor implements HandlerInterceptor {
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"code\": 401, \"message\": \"Not authenticated\"}");
         return false;
+    }
+
+    /** JWT 数字 claim 常为 Integer，直接 get(..., Long.class) 会得到 null */
+    private static Long claimToLong(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof Long) {
+            return (Long) v;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).longValue();
+        }
+        return null;
+    }
+
+    private static Integer claimToInteger(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof Integer) {
+            return (Integer) v;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        }
+        return null;
     }
 }
