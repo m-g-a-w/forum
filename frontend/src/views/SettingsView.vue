@@ -307,6 +307,7 @@ export default {
       paymentPolling: false,
       paymentComplete: false,
       refreshing: false,
+      refreshingQr: false,
       // 成功对话框
       successDialogVisible: false
     }

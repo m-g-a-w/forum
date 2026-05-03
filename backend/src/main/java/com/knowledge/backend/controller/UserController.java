@@ -152,31 +152,37 @@ public class UserController {
         Map<String, Object> result = new HashMap<>();
         result.put("record", record);
 
-        // 支付宝沙箱当面付 - 生成二维码链接（precreate-enabled=false 时跳过，仅用模拟支付）
-        if ("alipay".equals(payMethod) && alipaySandbox && alipayPrecreateEnabled) {
-            try {
-                // 使用当面付 API 生成二维码链接
-                AlipayTradePrecreateResponse response =
-                    Factory.Payment.FaceToFace().preCreate(
-                        "知识平台-充值 " + amount + "元",
-                        record.getRechargeNo(),
-                        amount.toString()
-                    );
-                // 网关业务成功码为 10000（原误写 10003 会导致永远拿不到二维码）
-                if (response != null && "10000".equals(response.code)) {
-                    result.put("qrCode", response.qrCode);
+        // 支付宝沙箱当面付 - 生成二维码链接
+        if ("alipay".equals(payMethod)) {
+            if (alipaySandbox && alipayPrecreateEnabled) {
+                try {
+                    // 使用当面付 API 生成二维码链接
+                    AlipayTradePrecreateResponse response =
+                        Factory.Payment.FaceToFace().preCreate(
+                            "知识平台-充值 " + amount + "元",
+                            record.getRechargeNo(),
+                            amount.toString()
+                        );
+                    // 网关业务成功码为 10000（原误写 10003 会导致永远拿不到二维码）
+                    if (response != null && "10000".equals(response.code)) {
+                        result.put("qrCode", response.qrCode);
+                        result.put("payForm", null);
+                    } else {
+                        result.put("qrCode", null);
+                        String detail = response != null
+                                ? (response.msg + (response.subMsg != null ? " - " + response.subMsg : ""))
+                                : "无响应";
+                        result.put("error", "支付宝二维码生成失败，请重试: " + detail);
+                    }
+                } catch (Exception e) {
+                    // 降级：记录日志但不暴露技术细节给前端；生成一个模拟的二维码触发前端弹窗扫码流程
+                    System.err.println(">> [WARN] Alipay preCreate failed, falling back to simulate pay: " + e.getMessage());
+                    result.put("qrCode", "SIMULATE_QR_" + record.getRechargeNo());
                     result.put("payForm", null);
-                } else {
-                    result.put("qrCode", null);
-                    String detail = response != null
-                            ? (response.msg + (response.subMsg != null ? " - " + response.subMsg : ""))
-                            : "无响应";
-                    result.put("error", "支付宝二维码生成失败: " + detail);
                 }
-            } catch (Exception e) {
-                // 降级：记录日志但不暴露技术细节给前端；前端收不到 qrCode/error 时自动走模拟支付
-                System.err.println(">> [WARN] Alipay preCreate failed, falling back to simulate pay: " + e.getMessage());
-                result.put("qrCode", null);
+            } else {
+                // 模拟模式下直接返回模拟二维码，确保前端能够进入扫码流程弹窗
+                result.put("qrCode", "SIMULATE_QR_" + record.getRechargeNo());
                 result.put("payForm", null);
             }
         }
@@ -344,17 +350,13 @@ public class UserController {
 
         // 沙箱环境下，尝试查询支付宝交易状态
         if ("alipay".equals(record.getPayMethod()) && alipaySandbox) {
-            try {
-                com.alipay.easysdk.payment.common.models.AlipayTradeQueryResponse response =
-                    Factory.Payment.Common().query(record.getRechargeNo());
-
-                if ("TRADE_SUCCESS".equals(response.tradeStatus) || "TRADE_FINISHED".equals(response.tradeStatus)) {
-                    // 更新订单状态
+            if (!alipayPrecreateEnabled) {
+                // 如果是纯模拟模式，为了让用户能看到二维码，等待 5 秒后再自动支付成功
+                if (record.getCreateTime().plusSeconds(5).isBefore(LocalDateTime.now())) {
                     record.setStatus(1);
                     record.setPayTime(LocalDateTime.now());
                     rechargeRecordService.updateById(record);
 
-                    // 更新用户余额
                     User user = userService.getById(record.getUserId());
                     if (user != null) {
                         user.setBalance(user.getBalance().add(record.getAmount()));
@@ -362,8 +364,28 @@ public class UserController {
                         userService.updateById(user);
                     }
                 }
-            } catch (Exception e) {
-                System.err.println(">> [WARN] Query trade status failed: " + e.getMessage());
+            } else {
+                try {
+                    com.alipay.easysdk.payment.common.models.AlipayTradeQueryResponse response =
+                        Factory.Payment.Common().query(record.getRechargeNo());
+
+                    if ("TRADE_SUCCESS".equals(response.tradeStatus) || "TRADE_FINISHED".equals(response.tradeStatus)) {
+                        // 更新订单状态
+                        record.setStatus(1);
+                        record.setPayTime(LocalDateTime.now());
+                        rechargeRecordService.updateById(record);
+
+                        // 更新用户余额
+                        User user = userService.getById(record.getUserId());
+                        if (user != null) {
+                            user.setBalance(user.getBalance().add(record.getAmount()));
+                            user.setUpdateTime(LocalDateTime.now());
+                            userService.updateById(user);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println(">> [WARN] Query trade status failed: " + e.getMessage());
+                }
             }
         }
 

@@ -56,8 +56,17 @@
             <el-table-column prop="title" label="文章标题"></el-table-column>
             <el-table-column label="阅读权限" width="120">
               <template slot-scope="scope">
-                <el-tag :type="scope.row.isFree ? 'success' : 'warning'" size="small">
-                  {{ scope.row.isFree ? '免费试读' : '付费内容' }}
+                <el-tag v-if="column.price == 0" type="success" size="small">
+                  全本免费
+                </el-tag>
+                <el-tag v-else-if="scope.row.isFree" type="success" size="small">
+                  首章试读
+                </el-tag>
+                <el-tag v-else-if="isSubscribed || column.creatorId === $store.state.user?.id" type="success" size="small">
+                  已解锁可读
+                </el-tag>
+                <el-tag v-else type="warning" size="small">
+                  <i class="el-icon-lock"></i> 订阅后解锁
                 </el-tag>
               </template>
             </el-table-column>
