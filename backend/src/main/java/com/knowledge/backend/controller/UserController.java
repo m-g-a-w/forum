@@ -174,15 +174,10 @@ public class UserController {
                     result.put("error", "支付宝二维码生成失败: " + detail);
                 }
             } catch (Exception e) {
-                System.err.println(">> [ERROR] Alipay QR code error: " + e.getMessage());
+                // 降级：记录日志但不暴露技术细节给前端；前端收不到 qrCode/error 时自动走模拟支付
+                System.err.println(">> [WARN] Alipay preCreate failed, falling back to simulate pay: " + e.getMessage());
                 result.put("qrCode", null);
                 result.put("payForm", null);
-                String hint = "验签失败多为「支付宝公钥」填错：须从开放平台该应用的「接口加签方式」复制支付宝公钥（不是应用公钥）；"
-                        + "或先在 application.yml 设置 alipay.precreate-enabled: false 使用模拟支付。";
-                String msg = e.getMessage() != null && e.getMessage().contains("验签")
-                        ? hint + " 原始错误: " + e.getMessage()
-                        : "支付宝支付初始化失败: " + e.getMessage();
-                result.put("error", msg);
             }
         }
 

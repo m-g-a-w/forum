@@ -38,4 +38,4 @@ alipay:
   alipay-public-key: ${ALIPAY_ALIPAY_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAthDJ1OpNuwmGc6TYQN7w4NS7an6MPQvXRNAL4QMwK4mrYiwq/GoCECI262eFvl+RUgEdSz3FeCkX/815/EhriSB2h7xqkjLfg99pHExnL/e6mUc7ZjtCErjF4SiY5poKSJeUcN+rt6vBCNhrIFZuwyPW1Bc9kXA08cw0Jf/LVIL4WFLeAj0jMvnn37B6EwhvuSFPYIa5pWsx1SdBrsP6e9UHuazvpT/trN+QWYrfDranGIJm7f/oKWR6ixNpnHKxE0i8ItNPH6NAX07KFQ6bXFIBqN95ta46CqMNjLDyqfwhANXcfI9itnCLdU22eO9W/t8AMFyWwAo1GxJKQtwTTQIDAQAB}
   notify-url: http://localhost:8081/user/alipay/notify
   sandbox: true
-  precreate-enabled: ${ALIPAY_PRECREATE_ENABLED:true}
+  precreate-enabled: ${ALIPAY_PRECREATE_ENABLED:false}

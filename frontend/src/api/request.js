@@ -4,8 +4,11 @@ import { MessageBox } from 'element-ui'
 
 const service = axios.create({
   baseURL: '/api', // 使用 vue.config.js 的代理
-  timeout: 5000
+  timeout: 30000
 })
+
+// 全局错误弹窗去重锁：同一时刻只弹一个「系统异常」
+let isErrorShowing = false
 
 // 请求拦截器：添加 token
 service.interceptors.request.use(
@@ -62,10 +65,16 @@ service.interceptors.response.use(
     if (error.response && error.response.data && error.response.data.message) {
       errorMsg = error.response.data.message
     }
-    MessageBox.alert(errorMsg, '系统异常', {
-      confirmButtonText: '我知道了',
-      type: 'error'
-    }).catch(() => {})
+    // 去重：已有弹窗时跳过，避免超时重试导致多个弹窗叠加
+    if (!isErrorShowing) {
+      isErrorShowing = true
+      MessageBox.alert(errorMsg, '系统异常', {
+        confirmButtonText: '我知道了',
+        type: 'error'
+      }).finally(() => {
+        isErrorShowing = false
+      })
+    }
     return Promise.resolve(null)
   }
 )

@@ -158,7 +158,7 @@
           </div>
           <div class="recharge-title">
             <h3>账户充值</h3>
-            <p>选择金额，开启知识之旅</p>
+            <p>选择金额</p>
           </div>
         </div>
 
@@ -189,8 +189,8 @@
           <div class="section-title">支付方式</div>
           <div class="payment-card active">
             <div class="payment-logo">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="#1677FF" d="M19.5 6.5c-.3-.9-1.1-1.5-2.1-1.5H6.6c-.9 0-1.8.6-2.1 1.5l-3.2 9.8c-.2.7.3 1.5 1.1 1.5h2.4l1.4 4.2c.2.6.8 1 1.4 1h.4c.8 0 1.4-.6 1.4-1.4v-.2c0-.4-.2-.8-.5-1l-.8-.6 1-3.1h2.4c.9 0 1.8-.6 2.1-1.5l.5-1.4h2.3c.8 0 1.5-.8 1.3-1.6l-2.5-6.5z"/>
+              <svg class="alipay-brand-icon" viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/>
               </svg>
             </div>
             <div class="payment-info">
@@ -199,12 +199,6 @@
             </div>
             <div class="payment-check"><i class="el-icon-check"></i></div>
           </div>
-        </div>
-
-        <!-- 提示 -->
-        <div class="recharge-tips">
-          <p><i class="el-icon-circle-check"></i> 即时到账</p>
-          <p><i class="el-icon-circle-check"></i> 可购买专栏</p>
         </div>
       </div>
 
@@ -218,7 +212,7 @@
     </el-dialog>
 
     <!-- 扫码支付对话框 -->
-    <el-dialog title="" :visible.sync="qrCodeDialogVisible" width="380px" :close-on-click-modal="false" class="qr-dialog">
+    <el-dialog title="" :visible.sync="qrCodeDialogVisible" width="380px" :close-on-click-modal="false" :show-close="false" class="qr-dialog">
       <div class="qr-dialog-content">
         <div class="qr-close" @click="cancelQrCodePayment"><i class="el-icon-close"></i></div>
 
@@ -243,15 +237,21 @@
           <div class="qr-step"><span class="step-num">3</span><span>完成支付</span></div>
         </div>
 
-        <div class="qr-status">
-          <div class="status-polling" v-if="paymentPolling">
-            <i class="el-icon-refresh el-spin"></i> 检测支付结果...
-          </div>
+        <!-- 状态提示（纯指示，非按钮） -->
+        <div class="qr-status-bar" v-if="paymentPolling">
+          <i class="el-icon-loading"></i>
+          <span>正在检测支付结果，请稍候…</span>
         </div>
 
-        <el-button size="small" plain @click="manualRefreshStatus" class="refresh-btn">
-          <i class="el-icon-refresh"></i> 刷新状态
-        </el-button>
+        <!-- 双按钮操作区 -->
+        <div class="qr-actions">
+          <el-button size="small" plain @click="regenerateQrCode" :disabled="refreshingQr" class="qr-action-btn">
+            <i class="el-icon-refresh"></i> 刷新二维码
+          </el-button>
+          <el-button size="small" type="primary" @click="manualRefreshStatus" :loading="refreshing" class="qr-action-btn">
+            <i class="el-icon-search"></i> 检测支付结果
+          </el-button>
+        </div>
       </div>
     </el-dialog>
 
@@ -290,7 +290,7 @@ export default {
       subscriptionPageSize: 8,
       loadingMoreSubscriptions: false,
       // 充值相关
-      quickAmounts: [10, 30, 50, 100, 200, 500],
+      quickAmounts: [10, 30, 50, 100],
       rechargeDialogVisible: false,
       rechargeForm: {
         amount: 100,
@@ -355,8 +355,21 @@ export default {
 
       request.post(`/user/recharge/create?amount=${this.rechargeForm.amount}&payMethod=${this.rechargeForm.payMethod}`)
         .then(order => {
+          if (!order) {
+            this.$message.error('网络或服务器异常，请稍后重试')
+            return
+          }
+          if (order.error) {
+            this.$message.error(order.error)
+            return
+          }
+          const rechargeNo = order.record && order.record.rechargeNo
+          if (!rechargeNo) {
+            this.$message.error('创建充值订单失败')
+            return
+          }
           if (order.qrCode) {
-            this.currentRechargeNo = order.record.rechargeNo
+            this.currentRechargeNo = rechargeNo
             QRCode.toDataURL(order.qrCode, {
               width: 200,
               margin: 2,
@@ -367,8 +380,8 @@ export default {
               this.qrCodeDialogVisible = true
               this.paymentPolling = true
               this.paymentComplete = false
-              this.pollPaymentStatus(order.record.rechargeNo)
-            }).catch(err => {
+              this.pollPaymentStatus(rechargeNo)
+            }).catch(() => {
               this.$message.error('二维码生成失败')
             })
           } else if (order.payForm) {
@@ -377,11 +390,11 @@ export default {
               newWindow.document.write(order.payForm)
               newWindow.document.close()
               this.rechargeDialogVisible = false
-              this.currentRechargeNo = order.record.rechargeNo
-              this.pollPaymentStatus(order.record.rechargeNo)
+              this.currentRechargeNo = rechargeNo
+              this.pollPaymentStatus(rechargeNo)
             }
           } else {
-            return request.post(`/user/recharge/pay?rechargeNo=${order.record.rechargeNo}`)
+            return request.post(`/user/recharge/pay?rechargeNo=${rechargeNo}`)
           }
         })
         .then(res => {
@@ -398,6 +411,16 @@ export default {
         .finally(() => {
           this.recharging = false
         })
+    },
+    // 刷新二维码：取消当前订单轮询，重新发起充值下单（获取新二维码）
+    regenerateQrCode() {
+      this.paymentPolling = false
+      this.qrCodeUrl = ''
+      this.currentRechargeNo = ''
+      this.qrCodeDialogVisible = false
+      this.$nextTick(() => {
+        this.confirmRecharge()
+      })
     },
     manualRefreshStatus() {
       if (!this.currentRechargeNo) return
@@ -801,6 +824,10 @@ export default {
   align-items: center;
   justify-content: center;
 }
+.alipay-brand-icon {
+  display: block;
+  flex-shrink: 0;
+}
 .payment-info {
   flex: 1;
   margin-left: 12px;
@@ -824,23 +851,6 @@ export default {
   justify-content: center;
   color: #fff;
   font-size: 14px;
-}
-.recharge-tips {
-  display: flex;
-  gap: 20px;
-  padding: 12px 16px;
-  background: #f4f9ff;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-.recharge-tips p {
-  margin: 0;
-  font-size: 13px;
-  color: #606266;
-}
-.recharge-tips i {
-  color: #67c23a;
-  margin-right: 4px;
 }
 .recharge-footer {
   display: flex;
@@ -964,24 +974,26 @@ export default {
   color: #c0c4cc;
   font-size: 12px;
 }
-.qr-status {
-  margin-bottom: 16px;
-}
-.status-polling {
+.qr-status-bar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 6px 14px;
   background: #fdf6ec;
   color: #e6a23c;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 12px;
+  margin-bottom: 14px;
 }
-.refresh-btn {
-  color: #409eff;
+.qr-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
 }
-.refresh-btn:hover {
-  color: #66b1ff;
+.qr-action-btn {
+  flex: 1;
+  max-width: 140px;
 }
 
 /* ========== 支付成功对话框 ========== */
