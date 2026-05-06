@@ -51,42 +51,42 @@
           <div v-show="activeTab === 'dashboard'">
              <h2 class="section-title">全局数据看板</h2>
 
-             <!-- 核心指标卡片 -->
+             <!-- 四个独立的数据分析图表 -->
              <el-row :gutter="20" style="margin-top: 20px;">
                <el-col :span="6">
-                 <el-card shadow="hover" class="stat-card">
-                    <div class="stat-icon users-icon"><i class="el-icon-user"></i></div>
-                    <div class="stat-info">
-                      <div class="stat-value">{{ stat.userCount }}</div>
-                      <div class="stat-label">总注册用户</div>
-                    </div>
+                 <el-card shadow="hover">
+                   <div slot="header" class="card-header" style="display: flex; justify-content: space-between;">
+                     <span><i class="el-icon-user"></i> 总注册用户</span>
+                     <span style="font-weight: bold; color: #667eea;">{{ stat.userCount }}</span>
+                   </div>
+                   <div id="chart-user" style="width: 100%; height: 180px;"></div>
                  </el-card>
                </el-col>
                <el-col :span="6">
-                 <el-card shadow="hover" class="stat-card">
-                    <div class="stat-icon columns-icon"><i class="el-icon-document"></i></div>
-                    <div class="stat-info">
-                      <div class="stat-value">{{ stat.columnCount }}</div>
-                      <div class="stat-label">专栏总数</div>
-                    </div>
+                 <el-card shadow="hover">
+                   <div slot="header" class="card-header" style="display: flex; justify-content: space-between;">
+                     <span><i class="el-icon-document"></i> 专栏总数</span>
+                     <span style="font-weight: bold; color: #f5576c;">{{ stat.columnCount }}</span>
+                   </div>
+                   <div id="chart-column" style="width: 100%; height: 180px;"></div>
                  </el-card>
                </el-col>
                <el-col :span="6">
-                 <el-card shadow="hover" class="stat-card">
-                    <div class="stat-icon orders-icon"><i class="el-icon-shopping-cart-2"></i></div>
-                    <div class="stat-info">
-                      <div class="stat-value">{{ stat.orderCount }}</div>
-                      <div class="stat-label">支付订单</div>
-                    </div>
+                 <el-card shadow="hover">
+                   <div slot="header" class="card-header" style="display: flex; justify-content: space-between;">
+                     <span><i class="el-icon-shopping-cart-2"></i> 支付订单</span>
+                     <span style="font-weight: bold; color: #4facfe;">{{ stat.orderCount }}</span>
+                   </div>
+                   <div id="chart-order" style="width: 100%; height: 180px;"></div>
                  </el-card>
                </el-col>
                <el-col :span="6">
-                 <el-card shadow="hover" class="stat-card">
-                    <div class="stat-icon subs-icon"><i class="el-icon-s-grid"></i></div>
-                    <div class="stat-info">
-                      <div class="stat-value">{{ stat.subscriptionCount || 0 }}</div>
-                      <div class="stat-label">订阅总数</div>
-                    </div>
+                 <el-card shadow="hover">
+                   <div slot="header" class="card-header" style="display: flex; justify-content: space-between;">
+                     <span><i class="el-icon-s-grid"></i> 订阅总数</span>
+                     <span style="font-weight: bold; color: #43e97b;">{{ stat.subscriptionCount || 0 }}</span>
+                   </div>
+                   <div id="chart-sub" style="width: 100%; height: 180px;"></div>
                  </el-card>
                </el-col>
              </el-row>
@@ -379,6 +379,7 @@
 <script>
 import request from '@/api/request'
 import { mapState, mapMutations } from 'vuex'
+import * as echarts from 'echarts'
 
 export default {
   data() {
@@ -392,7 +393,12 @@ export default {
         activeUserCount: 0,
         todayRegister: 0,
         todayOrder: 0,
-        totalRevenue: 0
+        totalRevenue: 0,
+        dateList: [],
+        userTrend: [],
+        columnTrend: [],
+        orderTrend: [],
+        subscriptionTrend: []
       },
       // 用户管理相关
       users: [],
@@ -471,6 +477,65 @@ export default {
         this.recentUsersTotal = (recentUsers || []).length
         this.recentOrders = recentOrders || []
         this.recentOrdersTotal = (recentOrders || []).length
+        
+        this.$nextTick(() => {
+          this.initChart()
+        })
+      })
+    },
+    initChart() {
+      const charts = [
+        { id: 'chart-user', name: '新增用户', data: this.stat.userTrend, color: '#667eea' },
+        { id: 'chart-column', name: '新增专栏', data: this.stat.columnTrend, color: '#f5576c' },
+        { id: 'chart-order', name: '新增订单', data: this.stat.orderTrend, color: '#4facfe' },
+        { id: 'chart-sub', name: '新增订阅', data: this.stat.subscriptionTrend, color: '#43e97b' }
+      ]
+
+      charts.forEach(cfg => {
+        const dom = document.getElementById(cfg.id)
+        if (!dom) return
+        let chart = echarts.getInstanceByDom(dom)
+        if (!chart) {
+          chart = echarts.init(dom)
+          window.addEventListener('resize', () => {
+            if (this.activeTab === 'dashboard') chart.resize()
+          })
+        }
+        
+        chart.setOption({
+          tooltip: {
+            trigger: 'axis',
+            formatter: `{b}<br/>{a}: {c}`
+          },
+          grid: { left: '5%', right: '5%', bottom: '5%', top: '5%', containLabel: true },
+          xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: this.stat.dateList || [],
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { show: true, color: '#999', fontSize: 10 }
+          },
+          yAxis: {
+            type: 'value',
+            splitLine: { show: true, lineStyle: { type: 'dashed', color: '#f0f0f0' } },
+            axisLabel: { show: false }
+          },
+          series: [{
+            name: cfg.name,
+            type: 'line',
+            smooth: true,
+            itemStyle: { color: cfg.color },
+            lineStyle: { width: 3 },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: cfg.color },
+                { offset: 1, color: 'rgba(255,255,255,0)' }
+              ])
+            },
+            data: cfg.data || []
+          }]
+        })
       })
     },
     fetchUsers() {

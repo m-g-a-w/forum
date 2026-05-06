@@ -61,8 +61,16 @@ public class ArticleController {
         if (column != null && column.getPrice() != null && column.getPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
             // 专栏是付费的，检查用户是否已订阅
             if (userId == null || !subscriptionService.checkSubscribe(userId, article.getColumnId())) {
-                // 未订阅且不是免费文章，隐藏正文
-                if (article.getIsFree() == null || article.getIsFree() != 1) {
+                // 检查该文章是否是专栏的前五章
+                long countBefore = articleService.lambdaQuery()
+                    .eq(Article::getColumnId, article.getColumnId())
+                    .eq(Article::getStatus, 1)
+                    .lt(Article::getSortOrder, article.getSortOrder())
+                    .count();
+                boolean isFirstFive = countBefore < 5;
+
+                // 未订阅且不是前五章，且不是特别设置的免费文章，隐藏正文
+                if (!isFirstFive && (article.getIsFree() == null || article.getIsFree() != 1)) {
                     article.setContent("【付费内容】请先订阅该专栏以阅读完整内容");
                     article.setPaywall(true);
                 }

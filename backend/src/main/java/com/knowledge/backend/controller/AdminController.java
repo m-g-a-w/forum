@@ -214,6 +214,31 @@ public class AdminController {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             data.put("totalRevenue", totalRevenue.setScale(2, BigDecimal.ROUND_HALF_UP));
 
+            // ECharts 趋势数据
+            List<String> dateList = new java.util.ArrayList<>();
+            List<Long> userTrend = new java.util.ArrayList<>();
+            List<Long> columnTrend = new java.util.ArrayList<>();
+            List<Long> orderTrend = new java.util.ArrayList<>();
+            List<Long> subscriptionTrend = new java.util.ArrayList<>();
+
+            for (int i = 6; i >= 0; i--) {
+                LocalDate d = LocalDate.now().minusDays(i);
+                dateList.add(d.format(DateTimeFormatter.ofPattern("MM-dd")));
+                LocalDateTime start = d.atStartOfDay();
+                LocalDateTime end = d.plusDays(1).atStartOfDay();
+                
+                userTrend.add(userService.lambdaQuery().ge(User::getCreateTime, start).lt(User::getCreateTime, end).count());
+                orderTrend.add(ordersService.lambdaQuery().ge(Orders::getCreateTime, start).lt(Orders::getCreateTime, end).count());
+                columnTrend.add(columnInfoService.lambdaQuery().ge(ColumnInfo::getCreateTime, start).lt(ColumnInfo::getCreateTime, end).count());
+                subscriptionTrend.add(subscriptionService.lambdaQuery().ge(Subscription::getCreateTime, start).lt(Subscription::getCreateTime, end).count());
+            }
+
+            data.put("dateList", dateList);
+            data.put("userTrend", userTrend);
+            data.put("columnTrend", columnTrend);
+            data.put("orderTrend", orderTrend);
+            data.put("subscriptionTrend", subscriptionTrend);
+
             return Result.success(data);
         } catch (Exception e) {
             return Result.error(403, e.getMessage());

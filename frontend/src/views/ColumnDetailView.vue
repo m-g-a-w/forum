@@ -59,8 +59,8 @@
                 <el-tag v-if="column.price == 0" type="success" size="small">
                   全本免费
                 </el-tag>
-                <el-tag v-else-if="scope.row.isFree" type="success" size="small">
-                  首章试读
+                <el-tag v-else-if="scope.$index < 5 || scope.row.isFree" type="success" size="small">
+                  免费试读
                 </el-tag>
                 <el-tag v-else-if="isSubscribed || column.creatorId === $store.state.user?.id" type="success" size="small">
                   已解锁可读
